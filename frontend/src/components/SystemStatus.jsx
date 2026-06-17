@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Server, Brain, RefreshCw, MessageSquare } from 'lucide-react'
-
-const SERVICES = [
-  { key: 'api',   label: 'Spring Boot API', icon: Server },
-  { key: 'ai',    label: 'AI Model',        icon: Brain },
-]
+import { Server, Brain, RefreshCw, MessageSquare, Database, Zap } from 'lucide-react'
 
 export default function SystemStatus() {
   const [health, setHealth]   = useState({})
@@ -16,13 +11,17 @@ export default function SystemStatus() {
     fetch('/actuator/health')
       .then(r => r.json())
       .then(data => {
+        const c = data.components ?? {}
         setHealth({
-          api: data.status ?? 'UNKNOWN',
-          ai:  'Demo',
+          api:    data.status               ?? 'UNKNOWN',
+          db:     c.db?.status             ?? 'UNKNOWN',
+          rabbit: c.rabbit?.status         ?? 'UNKNOWN',
+          redis:  c.redis?.status          ?? 'UNKNOWN',
+          ai:     'Live',
         })
         setLastChecked(new Date())
       })
-      .catch(() => setHealth({ api: 'DOWN', ai: 'Demo' }))
+      .catch(() => setHealth({ api: 'DOWN', db: 'DOWN', rabbit: 'DOWN', redis: 'DOWN', ai: 'Live' }))
       .finally(() => setLoading(false))
   }
 
@@ -32,17 +31,25 @@ export default function SystemStatus() {
     return () => clearInterval(id)
   }, [])
 
+  const SERVICES = [
+    { key: 'api',    label: 'Spring Boot API', icon: Server },
+    { key: 'db',     label: 'Database (H2)',   icon: Database },
+    { key: 'rabbit', label: 'RabbitMQ',        icon: MessageSquare },
+    { key: 'redis',  label: 'Redis',           icon: Zap },
+    { key: 'ai',     label: 'AI Model',        icon: Brain },
+  ]
+
   const dot = (status) => {
-    if (status === 'UP')    return 'bg-emerald-500'
-    if (status === 'DOWN')  return 'bg-red-500'
-    if (status === 'Demo')  return 'bg-violet-500'
+    if (status === 'UP')   return 'bg-emerald-500'
+    if (status === 'DOWN') return 'bg-red-500'
+    if (status === 'Live') return 'bg-violet-500'
     return 'bg-amber-400 animate-pulse'
   }
 
   const labelCls = (status) => {
-    if (status === 'UP')    return 'text-emerald-600 dark:text-emerald-400'
-    if (status === 'DOWN')  return 'text-red-600 dark:text-red-400'
-    if (status === 'Demo')  return 'text-violet-600 dark:text-violet-400'
+    if (status === 'UP')   return 'text-emerald-600 dark:text-emerald-400'
+    if (status === 'DOWN') return 'text-red-600 dark:text-red-400'
+    if (status === 'Live') return 'text-violet-600 dark:text-violet-400'
     return 'text-amber-600 dark:text-amber-400'
   }
 
@@ -83,14 +90,13 @@ export default function SystemStatus() {
 
       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/[0.04]">
         <a
-          href="https://rmq-4bf2a6d7-619b-4011-bcdc-44ede175fd93.sys.tpcf.tnz-field-epc.lvn.broadcom.net"
+          href="https://rmq-05b18791-f4b3-491a-be4c-179806d0079f.sys.dhaka.cf-app.com"
           target="_blank"
           rel="noreferrer"
           className="text-blue-500 hover:text-blue-400 text-[10px] font-medium flex items-center gap-1"
         >
           <MessageSquare size={10} /> RabbitMQ Console →
         </a>
-        <p className="text-violet-500 dark:text-violet-400 text-[10px] font-medium mt-2">Demo mode · Mock data · AI chat live</p>
       </div>
     </div>
   )

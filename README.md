@@ -2,9 +2,7 @@
 
 AI-powered payment analyst built on **Spring AI 1.0** and **Tanzu Platform GenAI**.
 
-Conversational chat analyst powered by `gpt-oss:20b` with tool calling — queries live transaction data, explains fraud patterns, analyses risk, and generates investigation narratives. Per-session conversation memory. Six LLM-callable tools.
-
-Deploys as a single jar to Tanzu Application Service (TAS). React frontend embedded in the Spring Boot jar.
+Conversational chat analyst streaming from `mistralai/Devstral-Small-2507` — analyses mock payment data, explains fraud patterns, and generates investigation narratives. Per-session conversation memory. Payment data embedded in the system prompt. Deploys as a single jar to Tanzu Application Service (TAS).
 
 ---
 
@@ -14,22 +12,19 @@ Deploys as a single jar to Tanzu Application Service (TAS). React frontend embed
 |---|---|---|
 | [payflow-demo](https://github.com/zahooruk2022/payflow-demo) | Spring Boot · Docker Compose | Local dev — PostgreSQL, RabbitMQ, Redis, Prometheus, Grafana |
 | [payflow-demo-cf](https://github.com/zahooruk2022/payflow-demo-cf) | Spring Boot · CF managed services | Tanzu/TAS — single `cf push`, VCAP_SERVICES auto-wiring |
-| **payflow-ai** ← you are here | Spring AI · Tanzu GenAI | AI payment analyst — tool-calling chat on `gpt-oss:20b` |
+| **payflow-ai** ← you are here | Spring AI · Tanzu GenAI | AI payment analyst — streaming chat on Devstral-Small |
+| [payflow-ai-epc](https://github.com/zahooruk2022/payflow-ai-epc) | Spring AI · Tanzu GenAI | EPC foundation variant — tool calling investigation |
 
 ---
 
 ## Features
 
+- SSE streaming — tokens appear in the browser as the model generates them
 - Per-session conversation memory — ask follow-up questions, the model remembers context
-- Six LLM-callable tools the model invokes autonomously:
-  - `getRecentTransactions` — live transaction feed with risk scores
-  - `getPaymentStatistics` — 24h volume, fraud rate, flagged count
-  - `getFraudAlerts` — current high-risk alerts with rule/amount/risk
-  - `explainFraudDetectionRules` — documents the four detection algorithms
-  - `getAccountBalances` — current balances for all six demo banks
-  - `generateFraudNarrative` — detailed investigation report for a transaction
+- Payment data embedded in system prompt — fraud stats, transaction feed, bank balances, fraud rules
 - Suggested questions and one-click topic starters
-- "New session" button resets conversation memory
+- System Health dashboard — live status for API, DB, RabbitMQ, Redis, AI Model
+- "New session" resets conversation memory
 
 ---
 
@@ -61,21 +56,27 @@ npm run dev
 
 ## Deploy to Cloud Foundry / Tanzu Application Service
 
+Tested on Tanzu Platform dhaka (`api.sys.dhaka.cf-app.com`, GTO-models plan).
+
 ```bash
-# 1. Create AI service instance (one-time)
-cf create-service ai-models chat-and-tools-model payflow-ai-chat-tools
+# 1. Create service instances (one-time)
+cf create-service ai-models GTO-models payflow-ai-chat-tools
+cf create-service p.rabbitmq rmq-single-node payflow-rabbitmq
+cf create-service p.redis vk-ha-plan payflow-redis
 
 # 2. Build (bundles React into the jar)
 ./build.sh
 
-# 3. Push — service is bound automatically via manifest.yml
+# 3. Push — services bound automatically via manifest.yml
 cf push
 
 # 4. Open
 cf app payflow-ai   # shows the route
 ```
 
-Credentials (base URL + API key) are injected from `VCAP_SERVICES` at startup by `GenAiVcapPostProcessor` — no `cf set-env` needed. The model name (`gpt-oss:20b`) is set in `manifest.yml` since the service binding does not expose it.
+AI credentials (base URL + API key) are injected from `VCAP_SERVICES` at startup by `GenAiVcapPostProcessor` — no `cf set-env` needed. The model name is set in `manifest.yml`.
+
+> **Dhaka service plans**: `ai-models / GTO-models`, `p.rabbitmq / rmq-single-node`, `p.redis / vk-ha-plan`. Plans vary by foundation — check `cf marketplace` on your target.
 
 ---
 
@@ -84,33 +85,41 @@ Credentials (base URL + API key) are injected from `VCAP_SERVICES` at startup by
 ```
 Browser
   └── React SPA (served by Spring Boot from /static/)
-        └── POST /api/chat      → ChatController
+        └── POST /api/chat/stream   → ChatController (SSE)
               └── ChatClient (Spring AI)
-                    ├── gpt-oss:20b  (Tanzu Platform GenAI — OpenAI-compatible)
-                    ├── InMemoryChatMemory  (per sessionId)
-                    └── PaymentDataTools  (6 @Tool methods)
+                    ├── Devstral-Small-2507  (Tanzu GenAI — OpenAI-compatible)
+                    ├── InMemoryChatMemory   (per sessionId)
+                    └── System prompt with embedded payment data
+
+CF managed services:
+  payflow-ai-chat-tools  → spring.ai.openai.chat.base-url + api-key  (GenAiVcapPostProcessor)
+  payflow-rabbitmq       → spring.rabbitmq.*                          (java-cfenv-boot)
+  payflow-redis          → spring.data.redis.*                        (java-cfenv-boot + RedisSslFixPostProcessor)
+  H2 in-memory           → spring.datasource.*  (local fallback, gives DB health indicator)
 ```
 
-No external databases or message queues. The only runtime dependency is the Tanzu Platform AI endpoint.
+> **Why no tool calling?** The GTO-models proxy on dhaka returns 400 Bad Request when the OpenAI `tools` field is present in the request — all three available models are affected. Payment data is embedded directly in the system prompt as a workaround. `PaymentDataTools.java` remains in the codebase for the `payflow-ai-epc` variant targeting a foundation with native tool calling support.
 
 ---
 
 ## Configuration
 
-**On CF** — credentials come from VCAP_SERVICES via service binding:
+**On CF** — AI credentials come from VCAP_SERVICES via service binding:
 
-| CF Service | Provides |
-|---|---|
-| `payflow-ai-chat-tools` | `spring.ai.openai.chat.base-url` + `chat.api-key` |
-
-**Env vars** (manifest.yml + local dev fallback):
-
-| Variable | Default | Description |
+| CF Service | Plan | Provides |
 |---|---|---|
-| `AI_CHAT_MODEL` | `gpt-oss:20b` | Chat model name (not in binding) |
+| `payflow-ai-chat-tools` | `GTO-models` | `spring.ai.openai.chat.base-url` + `api-key` |
+| `payflow-rabbitmq` | `rmq-single-node` | `spring.rabbitmq.*` |
+| `payflow-redis` | `vk-ha-plan` | `spring.data.redis.*` |
+
+**Env vars** (set in manifest.yml):
+
+| Variable | Value | Description |
+|---|---|---|
+| `AI_CHAT_MODEL` | `mistralai/Devstral-Small-2507` | Chat model name (not in VCAP binding) |
 | `AI_BASE_URL` | `http://localhost:11434/v1` | Local dev only — overridden by VCAP on CF |
 | `AI_API_KEY` | `local` | Local dev only — overridden by VCAP on CF |
-| `PORT` | `8080` | Set automatically by CF |
+| `PORT` | _(CF-assigned)_ | Set automatically by CF |
 
 > To inspect binding credentials for debugging: `cf create-service-key payflow-ai-chat-tools temp-key` then `cf service-key payflow-ai-chat-tools temp-key`. Delete the key afterwards. Never store or commit the output.
 
@@ -122,17 +131,22 @@ No external databases or message queues. The only runtime dependency is the Tanz
 payflow-ai/
 ├── backend/
 │   ├── src/main/java/com/demo/payflowai/
-│   │   ├── config/AiConfig.java                  ChatClient bean
-│   │   ├── config/GenAiVcapPostProcessor.java     VCAP_SERVICES → Spring AI properties
-│   │   ├── tools/PaymentDataTools.java            @Tool methods
-│   │   └── controller/ChatController.java         POST /api/chat
+│   │   ├── config/AiConfig.java                    ChatClient bean (system prompt, memory)
+│   │   ├── config/GenAiVcapPostProcessor.java       VCAP_SERVICES → Spring AI properties
+│   │   ├── config/RedisSslFixPostProcessor.java     java-cfenv-boot SSL compat fix
+│   │   ├── tools/PaymentDataTools.java              @Tool methods (inactive — proxy limitation)
+│   │   └── controller/ChatController.java           POST /api/chat/stream (SSE)
 │   └── src/main/resources/
 │       ├── application.yml
 │       └── META-INF/spring.factories
 ├── frontend/
-│   └── src/App.jsx                               React chat UI
-├── build.sh                                      npm ci + mvn package
-└── manifest.yml                                  CF deployment manifest
+│   └── src/
+│       ├── App.jsx                                  Root layout — tabs, dark mode
+│       └── components/
+│           ├── ChatPanel.jsx                        SSE streaming chat UI
+│           └── SystemStatus.jsx                     Live health dashboard
+├── build.sh                                         npm ci + mvn package
+└── manifest.yml                                     CF deployment manifest
 ```
 
 ---
@@ -140,6 +154,7 @@ payflow-ai/
 ## Tech stack
 
 - **Spring Boot 3.5** / Java 21
-- **Spring AI 1.0.0** — OpenAI client, ChatClient, tool calling, InMemoryChatMemory
+- **Spring AI 1.0.0** — OpenAI client, ChatClient, SSE streaming, InMemoryChatMemory
+- **java-cfenv-boot 3.1.5** — VCAP_SERVICES → Spring properties auto-wiring
 - **React 18** + **Vite** + **Tailwind CSS 3**
-- **Tanzu Platform GenAI tile** — `gpt-oss:20b` via OpenAI-compatible endpoint
+- **Tanzu Platform GenAI tile** — `mistralai/Devstral-Small-2507` via OpenAI-compatible endpoint

@@ -1,12 +1,14 @@
 # CLAUDE.md — PayFlow AI
 
-Spring AI demo app: AI payment analyst with tool calling on `gpt-oss:20b`.
-Conversational chat with per-session memory and six LLM-callable tools.
+Spring AI demo app: AI payment analyst on `mistralai/Devstral-Small-2507` (GTO-models plan, Tanzu Platform dhaka).
+Data embedded in system prompt. SSE streaming chat with per-session memory.
 Deploys as a single jar to Tanzu Application Service via `cf push`.
 GitHub: https://github.com/zahooruk2022/payflow-ai
 
-Model used (Tanzu Platform AI):
-- **gpt-oss:20b** — chat + tool calling (ChatController, AiConfig, PaymentDataTools)
+Model (Tanzu Platform GenAI — dhaka foundation):
+- **mistralai/Devstral-Small-2507** — streaming chat via OpenAI-compatible SSE
+
+> **Tool calling is disabled.** The GTO-models proxy on dhaka returns 400 when the `tools` field is present in OpenAI API requests (affects all three available models: Devstral, gpt-oss-120b, gemma-4-31B). Payment data is embedded directly in the system prompt instead. `PaymentDataTools.java` remains in the codebase for the `payflow-ai-epc` variant where native tool calling may work.
 
 ---
 
@@ -20,8 +22,11 @@ cd backend && mvn spring-boot:run
 
 cd frontend && npm install && npm run dev   # http://localhost:5174
 
-# CF deploy (one-time service setup)
-cf create-service ai-models chat-and-tools-model payflow-ai-chat-tools
+# CF deploy (one-time service setup — dhaka foundation)
+cf target -a https://api.sys.dhaka.cf-app.com
+cf create-service ai-models GTO-models payflow-ai-chat-tools
+cf create-service p.rabbitmq rmq-single-node payflow-rabbitmq
+cf create-service p.redis vk-ha-plan payflow-redis
 
 # Then every deploy:
 ./build.sh && cf push
@@ -49,20 +54,23 @@ cf delete-service-key payflow-ai-chat-tools temp-key -f
 
 | File | Purpose |
 |---|---|
-| `backend/src/main/java/.../config/AiConfig.java` | Wires ChatClient (with memory + tools) |
-| `backend/src/main/java/.../config/GenAiVcapPostProcessor.java` | Reads VCAP_SERVICES `ai-models` binding → sets Spring AI chat base-url + api-key |
-| `backend/src/main/resources/META-INF/spring.factories` | Registers GenAiVcapPostProcessor as an EnvironmentPostProcessor |
-| `backend/src/main/java/.../tools/PaymentDataTools.java` | @Tool methods available to gpt-oss:20b |
-| `backend/src/main/java/.../controller/ChatController.java` | POST /api/chat — per-session conversation memory |
-| `backend/src/main/resources/application.yml` | AI model name + local dev defaults (base-url/api-key overridden by VCAP on CF) |
-| `frontend/src/App.jsx` | React chat UI — message history, suggested questions, session management |
-| `manifest.yml` | CF manifest — binds payflow-ai-chat-tools service |
+| `backend/src/main/java/.../config/AiConfig.java` | Wires ChatClient: system prompt with embedded payment data, MessageChatMemoryAdvisor |
+| `backend/src/main/java/.../config/GenAiVcapPostProcessor.java` | Reads VCAP_SERVICES `ai-models` binding → sets Spring AI base-url + api-key |
+| `backend/src/main/java/.../config/RedisSslFixPostProcessor.java` | Fixes java-cfenv-boot 3.1.x setting `ssl=true` (String) which breaks Spring Boot 3.3+ `RedisProperties.Ssl` binding |
+| `backend/src/main/resources/META-INF/spring.factories` | Registers GenAiVcapPostProcessor + RedisSslFixPostProcessor |
+| `backend/src/main/java/.../tools/PaymentDataTools.java` | Mock @Tool methods — present but NOT registered with ChatClient (see note above) |
+| `backend/src/main/java/.../controller/ChatController.java` | `POST /api/chat/stream` (SSE streaming) + `POST /api/chat` (sync fallback) |
+| `backend/src/main/resources/application.yml` | Model name, H2 DB, RabbitMQ/Redis fallbacks, `spring.ai.retry.max-attempts: 1` |
+| `manifest.yml` | CF manifest — binds payflow-ai-chat-tools, payflow-rabbitmq, payflow-redis |
 
 ---
 
-## Spring AI notes
+## Spring AI / streaming notes
 
-- **ChatClient** is built in `AiConfig` with `defaultTools(paymentDataTools)` and `MessageChatMemoryAdvisor` for per-session history.
-- **@Tool** methods in `PaymentDataTools` use `org.springframework.ai.tool.annotation.Tool`.
-- **Conversation memory** key: `AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY` passed per request via `.advisors(spec -> spec.param(...))`.
-- **GenAiVcapPostProcessor** reads `VCAP_SERVICES["ai-models"][0]` and maps `credentials.endpoint.openai_api_base` + `api_key` to `spring.ai.openai.chat.base-url` + `chat.api-key`. Registered in `META-INF/spring.factories` (same pattern as `RedisSslFixPostProcessor` in payflow-demo-cf).
+- **ChatClient** is built in `AiConfig` with a compact system prompt (payment data embedded, ~150 tokens) and `MessageChatMemoryAdvisor` for per-session history.
+- **SSE streaming**: `ChatController.streamChat()` uses `SseEmitter` + `Flux<String>.toIterable()`.
+  - SSE comment sent before AI call to commit HTTP 200 and prevent 503 on fast failure.
+  - Keepalive every 15 s resets CF GoRouter's 180 s idle timeout.
+- **Retry disabled**: `spring.ai.retry.max-attempts: 1` — retry doubles latency and masks errors.
+- **GenAiVcapPostProcessor** reads `VCAP_SERVICES["ai-models"][0]`, maps `credentials.endpoint.openai_api_base` + `api_key` → `spring.ai.openai.chat.base-url` + `chat.api-key`. Registered in `META-INF/spring.factories`.
+- **RedisSslFixPostProcessor** — java-cfenv-boot 3.1.x writes `spring.data.redis.ssl=true` (String) into the environment; Spring Boot 3.3+ expects `spring.data.redis.ssl.enabled` (Boolean inside a record). The processor adds `.enabled` at highest priority. Same pattern as `payflow-demo-cf`.

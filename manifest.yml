@@ -23,7 +23,9 @@ applications:
     health-check-http-endpoint: /actuator/health
 
     services:
-      - payflow-ai-chat-tools    # → spring.ai.openai.chat.base-url + api-key
+      - payflow-ai-chat-tools    # → spring.ai.openai.chat.base-url + api-key (GenAiVcapPostProcessor)
+      - payflow-rabbitmq         # → spring.rabbitmq.* (java-cfenv-boot)
+      - payflow-redis            # → spring.data.redis.* (java-cfenv-boot)
 
     env:
       JBP_CONFIG_OPEN_JDK_JRE: '{ jre: { version: 21.+ } }'
@@ -32,5 +34,7 @@ applications:
         -XX:MaxRAMPercentage=65.0
         -Djava.security.egd=file:/dev/./urandom
 
-      # Model name is not in the VCAP binding — set it here
-      AI_CHAT_MODEL: gpt-oss:20b
+      # Model name is not in the VCAP binding — set it here.
+      # dhaka (api.sys.dhaka.cf-app.com) GTO-models plan:
+      #   mistralai/Devstral-Small-2507 | google/gemma-4-31B | openai/gpt-oss-120b
+      AI_CHAT_MODEL: mistralai/Devstral-Small-2507

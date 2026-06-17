@@ -3,8 +3,10 @@ spring:
     name: payflow-ai
 
   ai:
+    retry:
+      max-attempts: 1  # try once; retry doubles latency and masks the real error on slow models
     openai:
-      # On CF: base-url and api-key are set per-type by GenAiVcapPostProcessor from VCAP_SERVICES.
+      # On CF: base-url and api-key are set by GenAiVcapPostProcessor from VCAP_SERVICES.
       # Locally: override with AI_BASE_URL / AI_API_KEY env vars, or edit the defaults below.
       base-url: ${AI_BASE_URL:http://localhost:11434/v1}
       api-key:  ${AI_API_KEY:local}
@@ -13,6 +15,29 @@ spring:
           model:       ${AI_CHAT_MODEL:gpt-oss:20b}
           temperature: 0.5
           max-tokens:  1024
+
+  # H2 in-memory database — provides a real DB health indicator.
+  # On CF with a postgres/mysql service bound, java-cfenv-boot overrides this automatically.
+  datasource:
+    url: jdbc:h2:mem:payflowdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: none   # no entities to manage; health check just needs the connection
+    open-in-view: false
+
+  # RabbitMQ — java-cfenv-boot overrides host/port/credentials on CF when service is bound.
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+
+  # Redis — java-cfenv-boot overrides host/port/credentials on CF when service is bound.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 server:
   port: ${PORT:8080}

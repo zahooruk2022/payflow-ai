@@ -49,13 +49,12 @@
   .card-desc{color:var(--muted);font-size:12px;line-height:1.6}
   .card-layer{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-top:10px;padding:2px 8px;border-radius:20px;display:inline-block}
 
-  /* tools grid */
-  .tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
-  .tool-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s}
-  .tool-card:hover{border-color:#a371f740;transform:translateY(-1px)}
-  .tool-name{font-size:13px;font-weight:600;font-family:ui-monospace,monospace;color:var(--violet);margin-bottom:4px}
-  .tool-sig{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;margin-bottom:6px}
-  .tool-desc{font-size:12px;color:var(--muted);line-height:1.5}
+  /* data grid */
+  .data-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  .data-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s}
+  .data-card:hover{border-color:#a371f740;transform:translateY(-1px)}
+  .data-name{font-size:13px;font-weight:600;color:var(--violet);margin-bottom:4px}
+  .data-desc{font-size:12px;color:var(--muted);line-height:1.5}
 
   /* build flow */
   .flow-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px 32px}
@@ -89,7 +88,7 @@
   <div style="color:var(--muted);font-size:13px">Architecture &amp; Flow Reference</div>
   <nav>
     <a href="#overview" class="active" onclick="setActive(this)">Overview</a>
-    <a href="#tools" onclick="setActive(this)">Tools</a>
+    <a href="#data" onclick="setActive(this)">Data Design</a>
     <a href="#chat-flow" onclick="setActive(this)">Chat Flow</a>
     <a href="#build" onclick="setActive(this)">Build &amp; Deploy</a>
     <a href="#components" onclick="setActive(this)">Components</a>
@@ -104,7 +103,7 @@
 <main>
 
 <h1>PayFlow AI — Architecture</h1>
-<p class="subtitle">Spring AI 1.0 chat analyst. <code>gpt-oss:20b</code> with tool calling and per-session conversation memory. Single-jar CF deployment. Click any component for details.</p>
+<p class="subtitle">Spring AI 1.0 chat analyst. <code>mistralai/Devstral-Small-2507</code> · SSE streaming · per-session conversation memory. Single-jar CF deployment on Tanzu Platform dhaka. Click any component for details.</p>
 
 <!-- ─── Overview ─────────────────────────────────────────────────── -->
 <section id="overview">
@@ -116,12 +115,12 @@
       <div class="node browser" onclick="showDetail('browser')" style="grid-column:1">
         <div class="n-icon">🌐</div>
         <div class="n-title">Browser</div>
-        <div class="n-sub">React SPA<br/>Chat UI</div>
+        <div class="n-sub">React SPA<br/>Streaming Chat UI</div>
       </div>
 
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;grid-column:2">
-        <div style="font-size:11px;color:var(--blue);text-align:center">HTTPS →</div>
-        <div style="font-size:11px;color:var(--muted);text-align:center">← JSON</div>
+        <div style="font-size:11px;color:var(--blue);text-align:center">HTTPS SSE →</div>
+        <div style="font-size:11px;color:var(--muted);text-align:center">← tokens</div>
       </div>
 
       <div class="node spring" onclick="showDetail('spring-boot')" style="grid-column:3">
@@ -129,10 +128,10 @@
         <div class="n-title">payflow-ai (Spring Boot 3.5 · JDK 21)</div>
         <div class="n-sub" style="margin-top:8px;display:flex;justify-content:center;gap:32px;text-align:left">
           <div>
-            <div style="color:var(--text);font-size:12px;font-weight:600;margin-bottom:4px">POST /api/chat</div>
-            <div style="color:var(--muted)">ChatController</div>
+            <div style="color:var(--text);font-size:12px;font-weight:600;margin-bottom:4px">POST /api/chat/stream</div>
+            <div style="color:var(--muted)">ChatController (SSE)</div>
             <div style="color:var(--muted)">ChatClient + Memory</div>
-            <div style="color:var(--muted)">PaymentDataTools</div>
+            <div style="color:var(--muted)">System Prompt Data</div>
           </div>
           <div>
             <div style="color:var(--text);font-size:12px;font-weight:600;margin-bottom:4px">GET /</div>
@@ -145,14 +144,14 @@
       </div>
 
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;grid-column:4">
-        <div style="font-size:11px;color:var(--violet);text-align:center">HTTP →</div>
-        <div style="font-size:11px;color:var(--muted);text-align:center">← JSON</div>
+        <div style="font-size:11px;color:var(--violet);text-align:center">OpenAI SSE →</div>
+        <div style="font-size:11px;color:var(--muted);text-align:center">← stream</div>
       </div>
 
       <div class="node ai-model" onclick="showDetail('ai-endpoint')" style="grid-column:5">
         <div class="n-icon">🤖</div>
         <div class="n-title">Tanzu Platform GenAI</div>
-        <div class="n-sub">OpenAI-compatible<br/><span style="font-family:monospace">gpt-oss:20b</span></div>
+        <div class="n-sub">GTO-models plan<br/><span style="font-family:monospace;font-size:10px">Devstral-Small-2507</span></div>
       </div>
 
     </div>
@@ -163,146 +162,147 @@
         <div style="color:var(--muted)">Per-session conversation history<br/>Keyed by sessionId</div>
       </div>
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;font-size:12px">
-        <div style="color:var(--green);font-weight:600">PaymentDataTools</div>
-        <div style="color:var(--muted)">6 @Tool methods<br/>LLM calls automatically</div>
+        <div style="color:var(--amber);font-weight:600">System Prompt (~150 tokens)</div>
+        <div style="color:var(--muted)">Payment data, bank balances,<br/>fraud rules embedded at startup</div>
       </div>
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;font-size:12px">
-        <div style="color:var(--amber);font-weight:600">No Persistence Layer</div>
-        <div style="color:var(--muted)">No PostgreSQL · No RabbitMQ<br/>No Redis · Single jar</div>
+        <div style="color:var(--green);font-weight:600">CF Managed Services</div>
+        <div style="color:var(--muted)">RabbitMQ · Redis<br/>H2 in-memory DB</div>
       </div>
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;font-size:12px;color:var(--muted)">
       <span>Click any component for details →</span>
-      <span style="color:var(--blue)">— HTTPS / REST</span>
+      <span style="color:var(--blue)">— HTTPS / SSE stream</span>
       <span style="color:var(--violet)">— Spring AI (OpenAI-compatible)</span>
     </div>
   </div>
 </section>
 
-<!-- ─── Tools ─────────────────────────────────────────────────────── -->
-<section id="tools">
-  <h2>LLM-Callable Tools — PaymentDataTools</h2>
-  <p style="color:var(--muted);font-size:13px;margin-bottom:20px">
-    Six <code>@Tool</code>-annotated methods registered with the <code>ChatClient</code>.
-    <code>gpt-oss:20b</code> decides which to call based on the user's question — Spring AI executes them and feeds results back automatically.
-    All return mock data suitable for sales demos.
+<!-- ─── Data Design ────────────────────────────────────────────────── -->
+<section id="data">
+  <h2>Data Design — System Prompt Approach</h2>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:16px">
+    Payment data is embedded directly in the <code>ChatClient</code> system prompt in <code>AiConfig.java</code>.
+    <code>PaymentDataTools.java</code> exists in the codebase with full <code>@Tool</code> annotations but is <strong>not registered</strong> with the ChatClient
+    on this deployment — the GTO-models proxy on dhaka returns 400 when the OpenAI <code>tools</code> field is present.
+    The <code>payflow-ai-epc</code> variant targets a foundation with native tool calling support.
   </p>
-  <div class="tools-grid">
-
-    <div class="tool-card" onclick="showDetail('tool-recent-txns')">
-      <div class="tool-name">getRecentTransactions</div>
-      <div class="tool-sig">(int limit) → List&lt;Map&gt;</div>
-      <div class="tool-desc">Returns the most recent payment transactions with sender, receiver, amount, status, and risk score.</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:20px">
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--amber);margin-bottom:12px">Data embedded in system prompt — AiConfig.java</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px">
+        <div style="color:var(--text);font-weight:600;margin-bottom:4px">Stats (24h)</div>
+        <div style="color:var(--muted)">247 txns · £4.82M volume · 18 fraud flags (7.3%) · avg risk 34</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px">
+        <div style="color:var(--text);font-weight:600;margin-bottom:4px">Bank Balances</div>
+        <div style="color:var(--muted)">Albion £5M · Meridian £3.5M · Crestfield £2.75M · Harrington £4.2M · Caledonian £1.8M · Vantage £6.1M</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px">
+        <div style="color:var(--text);font-weight:600;margin-bottom:4px">Flagged Transactions</div>
+        <div style="color:var(--muted)">8 top-risk entries: PF-001 through PF-022, risk 63–95, amounts £50K–£250K</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px">
+        <div style="color:var(--text);font-weight:600;margin-bottom:4px">Fraud Rules</div>
+        <div style="color:var(--muted)">HIGH_AMOUNT · RAPID_SUCCESSION · ROUND_NUMBER · HIGH_RISK_ACCOUNT — risk ≥ 60 → FLAGGED</div>
+      </div>
     </div>
-
-    <div class="tool-card" onclick="showDetail('tool-stats')">
-      <div class="tool-name">getPaymentStatistics</div>
-      <div class="tool-sig">() → Map</div>
-      <div class="tool-desc">24-hour KPI summary: total transactions, total volume, flagged count, fraud rate, average amount.</div>
-    </div>
-
-    <div class="tool-card" onclick="showDetail('tool-alerts')">
-      <div class="tool-name">getFraudAlerts</div>
-      <div class="tool-sig">(int limit) → List&lt;Map&gt;</div>
-      <div class="tool-desc">Current fraud alerts with rule name, amount, risk score, sender account, and triggered time.</div>
-    </div>
-
-    <div class="tool-card" onclick="showDetail('tool-rules')">
-      <div class="tool-name">explainFraudDetectionRules</div>
-      <div class="tool-sig">() → String</div>
-      <div class="tool-desc">Documents the four fraud rules: HIGH_AMOUNT, RAPID_SUCCESSION, ROUND_NUMBER, HIGH_RISK_ACCOUNT.</div>
-    </div>
-
-    <div class="tool-card" onclick="showDetail('tool-balances')">
-      <div class="tool-name">getAccountBalances</div>
-      <div class="tool-sig">() → List&lt;Map&gt;</div>
-      <div class="tool-desc">Current balances for all six fictional demo banks: Albion, Meridian, Crestfield, Harrington, Caledonian, Vantage.</div>
-    </div>
-
-    <div class="tool-card" onclick="showDetail('tool-narrative')">
-      <div class="tool-name">generateFraudNarrative</div>
-      <div class="tool-sig">(String txnRef) → String</div>
-      <div class="tool-desc">Generates a detailed investigation narrative for a transaction — timeline, risk factors, triggered rules, recommended action.</div>
-    </div>
-
   </div>
 
-  <div style="margin-top:20px">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Tool annotation — PaymentDataTools.java</div>
-    <div class="code-block"><span class="c">// Spring AI 1.0 — method-level @Tool annotation</span>
-<span class="k">@Tool</span>(<span class="s">"Get the N most recent payment transactions with risk scores"</span>)
-<span class="k">public</span> List&lt;Map&lt;String, Object&gt;&gt; <span class="v">getRecentTransactions</span>(<span class="k">int</span> limit) {
-    <span class="k">return</span> List.of(
-        Map.of(<span class="s">"txnId"</span>, <span class="s">"PF-20261007"</span>, <span class="s">"amount"</span>, <span class="s">"£125,000.00"</span>,
-               <span class="s">"sender"</span>, <span class="s">"Vantage Bank PLC"</span>, <span class="s">"riskScore"</span>, 82, ...),
-        ...
-    ).stream().limit(limit).toList();
-}</div>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:16px">The <code>@Tool</code>-annotated methods below exist in <code>PaymentDataTools.java</code> and are available for re-activation on a tool-calling capable foundation.</p>
+  <div class="data-grid">
+
+    <div class="data-card" onclick="showDetail('tool-recent-txns')">
+      <div class="data-name">getRecentTransactions</div>
+      <div style="font-size:11px;color:var(--muted);font-family:monospace;margin-bottom:6px">(int limit) → List&lt;Map&gt;</div>
+      <div class="data-desc">Returns the most recent payment transactions with sender, receiver, amount, status, and risk score.</div>
+    </div>
+
+    <div class="data-card" onclick="showDetail('tool-stats')">
+      <div class="data-name">getPaymentStatistics</div>
+      <div style="font-size:11px;color:var(--muted);font-family:monospace;margin-bottom:6px">() → Map</div>
+      <div class="data-desc">24-hour KPI summary: total transactions, total volume, flagged count, fraud rate, average amount.</div>
+    </div>
+
+    <div class="data-card" onclick="showDetail('tool-alerts')">
+      <div class="data-name">getFraudAlerts</div>
+      <div style="font-size:11px;color:var(--muted);font-family:monospace;margin-bottom:6px">(int limit) → List&lt;Map&gt;</div>
+      <div class="data-desc">Current fraud alerts with rule name, amount, risk score, sender account, and trigger timestamp.</div>
+    </div>
+
+    <div class="data-card" onclick="showDetail('tool-rules')">
+      <div class="data-name">explainFraudDetectionRules</div>
+      <div style="font-size:11px;color:var(--muted);font-family:monospace;margin-bottom:6px">() → String</div>
+      <div class="data-desc">Documents the four fraud rules: HIGH_AMOUNT, RAPID_SUCCESSION, ROUND_NUMBER, HIGH_RISK_ACCOUNT.</div>
+    </div>
+
+    <div class="data-card" onclick="showDetail('tool-balances')">
+      <div class="data-name">getAccountBalances</div>
+      <div style="font-size:11px;color:var(--muted);font-family:monospace;margin-bottom:6px">() → List&lt;Map&gt;</div>
+      <div class="data-desc">Current balances for all six fictional demo banks: Albion, Meridian, Crestfield, Harrington, Caledonian, Vantage.</div>
+    </div>
+
+    <div class="data-card" onclick="showDetail('tool-narrative')">
+      <div class="data-name">generateFraudNarrative</div>
+      <div style="font-size:11px;color:var(--muted);font-family:monospace;margin-bottom:6px">(String txnRef) → String</div>
+      <div class="data-desc">Generates a detailed investigation narrative for a transaction — timeline, risk factors, triggered rules, recommended action.</div>
+    </div>
+
   </div>
 </section>
 
 <!-- ─── Chat Flow ─────────────────────────────────────────────────── -->
 <section id="chat-flow">
-  <h2>Chat Request — Full Lifecycle</h2>
+  <h2>Chat Request — SSE Streaming Lifecycle</h2>
   <div class="flow-box">
 
     <div class="flow-step" onclick="showDetail('cf-user-msg')">
       <div class="step-num tag-blue">1</div>
       <div class="step-body">
         <div class="step-title">User sends message</div>
-        <div class="step-desc">React calls <code>POST /api/chat</code> with <code>{ message, sessionId }</code>. If no sessionId is provided (first message), the server generates one and returns it for subsequent requests.</div>
-        <div class="tags"><span class="tag tag-blue">REST JSON</span><span class="tag tag-violet">sessionId</span></div>
+        <div class="step-desc">React calls <code>POST /api/chat/stream</code> with <code>{ message, sessionId }</code>. Server opens an SSE connection. If sessionId is absent (first message) the server generates a UUID and sends it as the final SSE event.</div>
+        <div class="tags"><span class="tag tag-blue">SSE / EventSource</span><span class="tag tag-violet">sessionId</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="flow-step" onclick="showDetail('cf-commit')">
+      <div class="step-num tag-amber">2</div>
+      <div class="step-body">
+        <div class="step-title">HTTP 200 committed immediately</div>
+        <div class="step-desc"><code>emitter.send(SseEmitter.event().comment("connected"))</code> fires before the AI call. This commits the response headers to the client — if the AI fails fast, Spring returns an SSE error event rather than a 503 JSON error from <code>BasicErrorController</code>. A keepalive comment is also sent every 15 s to prevent CF GoRouter's 180 s idle timeout.</div>
+        <div class="tags"><span class="tag tag-amber">SseEmitter</span><span class="tag tag-amber">keepalive/15s</span><span class="tag tag-green">No 503</span></div>
       </div>
     </div>
     <div class="connector"></div>
 
     <div class="flow-step" onclick="showDetail('cf-memory')">
-      <div class="step-num tag-violet">2</div>
+      <div class="step-num tag-violet">3</div>
       <div class="step-body">
         <div class="step-title">Conversation history prepended</div>
-        <div class="step-desc"><code>MessageChatMemoryAdvisor</code> looks up the sessionId in <code>InMemoryChatMemory</code> and prepends prior messages before the prompt is sent to the LLM. Each session has independent history.</div>
+        <div class="step-desc"><code>MessageChatMemoryAdvisor</code> looks up the sessionId in <code>InMemoryChatMemory</code> and prepends prior messages before the prompt is sent to the LLM. Each session has independent history. The compact system prompt (~150 tokens) with embedded payment data is always prepended as the system message.</div>
         <div class="tags"><span class="tag tag-violet">InMemoryChatMemory</span><span class="tag tag-violet">MessageChatMemoryAdvisor</span></div>
       </div>
     </div>
     <div class="connector"></div>
 
     <div class="flow-step" onclick="showDetail('cf-llm-call')">
-      <div class="step-num tag-violet">3</div>
+      <div class="step-num tag-violet">4</div>
       <div class="step-body">
-        <div class="step-title">LLM call #1 — gpt-oss:20b decides which tools to use</div>
-        <div class="step-desc">Spring AI sends the prompt (with history, system message, and tool schemas) to <code>gpt-oss:20b</code>. The model responds with <code>tool_calls</code> JSON indicating which <code>@Tool</code> methods to invoke.</div>
-        <div class="tags"><span class="tag tag-violet">gpt-oss:20b</span><span class="tag tag-violet">tool_calls JSON</span></div>
+        <div class="step-title">LLM call — Devstral streams tokens</div>
+        <div class="step-desc">Spring AI sends the prompt (system + history + user message) to <code>Devstral-Small-2507</code> via the OpenAI-compatible streaming endpoint. No <code>tools</code> field is included — the GTO-models proxy does not support it. The model generates a response grounded in the system prompt data.</div>
+        <div class="tags"><span class="tag tag-violet">Devstral-Small-2507</span><span class="tag tag-violet">OpenAI SSE protocol</span><span class="tag tag-amber">No tools field</span></div>
       </div>
     </div>
     <div class="connector"></div>
 
-    <div class="flow-step" onclick="showDetail('cf-tool-exec')">
-      <div class="step-num tag-green">4</div>
+    <div class="flow-step" onclick="showDetail('cf-stream')">
+      <div class="step-num tag-green">5</div>
       <div class="step-body">
-        <div class="step-title">@Tool methods executed by Spring AI</div>
-        <div class="step-desc">Spring AI reflectively calls the matching method(s) on <code>PaymentDataTools</code>. Results are serialised to JSON and added to the message history as tool result messages.</div>
-        <div class="tags"><span class="tag tag-green">Java reflection</span><span class="tag tag-green">PaymentDataTools</span></div>
-      </div>
-    </div>
-    <div class="connector"></div>
-
-    <div class="flow-step" onclick="showDetail('cf-llm-call2')">
-      <div class="step-num tag-violet">5</div>
-      <div class="step-body">
-        <div class="step-title">LLM call #2 — synthesise response from tool data</div>
-        <div class="step-desc">Spring AI sends another request to <code>gpt-oss:20b</code> with the tool results in context. The model synthesises a natural-language answer grounded in the live data — no hallucinated figures.</div>
-        <div class="tags"><span class="tag tag-violet">gpt-oss:20b</span><span class="tag tag-green">Data-grounded response</span></div>
-      </div>
-    </div>
-    <div class="connector"></div>
-
-    <div class="flow-step" onclick="showDetail('cf-response')">
-      <div class="step-num tag-green" style="background:#3fb95018;border:1px solid #3fb95040">✓</div>
-      <div class="step-body">
-        <div class="step-title">Response returned to browser</div>
-        <div class="step-desc"><code>{ response: "...", sessionId: "..." }</code> returned as JSON. React appends the assistant message. The sessionId is kept in state for the next request.</div>
-        <div class="tags"><span class="tag tag-green">JSON response</span><span class="tag tag-blue">React state update</span></div>
+        <div class="step-title">Tokens streamed to browser in real-time</div>
+        <div class="step-desc">Spring AI's <code>Flux&lt;String&gt;</code> is iterated; each token is forwarded as an SSE <code>data:</code> event. React appends each token to the message bubble as it arrives. On completion, an <code>event:done data:&lt;sessionId&gt;</code> event is sent. On error, an <code>event:error data:&lt;message&gt;</code> event is sent.</div>
+        <div class="tags"><span class="tag tag-green">Flux&lt;String&gt;.toIterable()</span><span class="tag tag-blue">React token append</span></div>
       </div>
     </div>
 
@@ -337,9 +337,9 @@
     <div class="flow-step" onclick="showDetail('step-services')">
       <div class="step-num tag-orange">3</div>
       <div class="step-body">
-        <div class="step-title">Create AI service instance (one-time)</div>
-        <div class="step-desc"><code>cf create-service ai-models chat-and-tools-model payflow-ai-chat-tools</code>. Listed in <code>manifest.yml services:</code> — CF injects credentials into <code>VCAP_SERVICES</code> on push. No <code>cf set-env</code> for credentials. Nothing secret in git.</div>
-        <div class="tags"><span class="tag tag-orange">cf create-service</span><span class="tag tag-orange">VCAP_SERVICES</span><span class="tag tag-green">No credentials in git</span></div>
+        <div class="step-title">Create CF service instances (one-time)</div>
+        <div class="step-desc">Three services must exist before <code>cf push</code>. All are listed in <code>manifest.yml services:</code> — CF binds them and injects credentials into <code>VCAP_SERVICES</code>. No <code>cf set-env</code> for credentials. Nothing secret in git.</div>
+        <div class="tags"><span class="tag tag-orange">cf create-service × 3</span><span class="tag tag-orange">VCAP_SERVICES</span><span class="tag tag-green">No credentials in git</span></div>
       </div>
     </div>
     <div class="connector"></div>
@@ -348,7 +348,7 @@
       <div class="step-num tag-orange">4</div>
       <div class="step-body">
         <div class="step-title">cf push</div>
-        <div class="step-desc">CF CLI reads <code>manifest.yml</code>, uploads the jar, stages with <code>java_buildpack_offline</code> (JDK 21), binds <code>payflow-ai-chat-tools</code>, assigns <code>PORT</code>, and starts the app. <code>GenAiVcapPostProcessor</code> maps VCAP_SERVICES to Spring AI properties before any beans are created.</div>
+        <div class="step-desc">CF CLI reads <code>manifest.yml</code>, uploads the jar, stages with <code>java_buildpack_offline</code> (JDK 21), binds all three services, assigns <code>PORT</code>, and starts the app. <code>GenAiVcapPostProcessor</code> maps VCAP_SERVICES to Spring AI properties; <code>RedisSslFixPostProcessor</code> patches the Redis SSL binding before any beans are created.</div>
         <div class="tags"><span class="tag tag-orange">java_buildpack_offline</span><span class="tag tag-orange">JDK 21</span><span class="tag tag-orange">1G memory</span></div>
       </div>
     </div>
@@ -358,8 +358,8 @@
       <div class="step-num tag-green" style="background:#3fb95018;border:1px solid #3fb95040">✓</div>
       <div class="step-body">
         <div class="step-title">App is live</div>
-        <div class="step-desc">React SPA at <code>/</code>. Chat at <code>POST /api/chat</code>. Health at <code>/actuator/health</code>. No CORS — frontend and backend share one CF route.</div>
-        <div class="tags"><span class="tag tag-green">Single route</span><span class="tag tag-green">No CORS</span></div>
+        <div class="step-desc">React SPA at <code>/</code>. Streaming chat at <code>POST /api/chat/stream</code>. Health at <code>/actuator/health</code> — shows all five components (API, DB, RabbitMQ, Redis, AI Model). No CORS — frontend and backend share one CF route.</div>
+        <div class="tags"><span class="tag tag-green">Single route</span><span class="tag tag-green">No CORS</span><span class="tag tag-green">5-component health</span></div>
       </div>
     </div>
 
@@ -377,9 +377,11 @@
     <span class="k">health-check-http-endpoint</span>: <span class="s">/actuator/health</span>
     <span class="k">services</span>:
       - <span class="s">payflow-ai-chat-tools</span>   <span class="c"># → spring.ai.openai.chat.base-url + api-key</span>
+      - <span class="s">payflow-rabbitmq</span>         <span class="c"># → spring.rabbitmq.*</span>
+      - <span class="s">payflow-redis</span>            <span class="c"># → spring.data.redis.*</span>
     <span class="k">env</span>:
       <span class="k">JBP_CONFIG_OPEN_JDK_JRE</span>: <span class="s">'{ jre: { version: 21.+ } }'</span>
-      <span class="k">AI_CHAT_MODEL</span>: <span class="s">gpt-oss:20b</span>
+      <span class="k">AI_CHAT_MODEL</span>: <span class="s">mistralai/Devstral-Small-2507</span>
       <span class="c">      # No AI_BASE_URL or API key — injected from VCAP_SERVICES</span></div>
   </div>
 </section>
@@ -391,7 +393,7 @@
 
     <div class="card" onclick="showDetail('comp-aiconfig')">
       <div class="card-header"><div class="card-icon">⚙️</div><div><div class="card-name">AiConfig.java</div><div class="card-file">config/AiConfig.java</div></div></div>
-      <div class="card-desc">Creates the <code>ChatClient</code> bean with system prompt, <code>MessageChatMemoryAdvisor</code> (per-session memory), and <code>PaymentDataTools</code> (6 tool methods).</div>
+      <div class="card-desc">Creates the <code>ChatClient</code> bean with the compact system prompt (payment data embedded, ~150 tokens) and <code>MessageChatMemoryAdvisor</code> for per-session memory. No tools registered — proxy limitation.</div>
       <span class="card-layer tag-violet">Spring AI config</span>
     </div>
 
@@ -401,28 +403,40 @@
       <span class="card-layer tag-orange">CF VCAP binding</span>
     </div>
 
+    <div class="card" onclick="showDetail('comp-redis-fix')">
+      <div class="card-header"><div class="card-icon">🔧</div><div><div class="card-name">RedisSslFixPostProcessor.java</div><div class="card-file">config/RedisSslFixPostProcessor.java</div></div></div>
+      <div class="card-desc">Fixes a java-cfenv-boot 3.1.x incompatibility: it sets <code>spring.data.redis.ssl=true</code> (String) but Spring Boot 3.3+ expects a nested <code>Ssl</code> record with <code>spring.data.redis.ssl.enabled</code>. Adds the correct key at highest priority.</div>
+      <span class="card-layer tag-red">Compat fix</span>
+    </div>
+
     <div class="card" onclick="showDetail('comp-tools')">
       <div class="card-header"><div class="card-icon">🔧</div><div><div class="card-name">PaymentDataTools.java</div><div class="card-file">tools/PaymentDataTools.java</div></div></div>
-      <div class="card-desc">Six <code>@Tool</code>-annotated methods returning mock payment data. The LLM invokes these autonomously. All banks are fictional: Albion, Meridian, Crestfield, Harrington, Caledonian, Vantage.</div>
-      <span class="card-layer tag-violet">@Tool methods</span>
+      <div class="card-desc">Six <code>@Tool</code>-annotated methods returning mock payment data. Present in the codebase but <strong>not registered</strong> with ChatClient on this deployment. Available for activation on <code>payflow-ai-epc</code> (tool-calling capable foundation).</div>
+      <span class="card-layer tag-amber">@Tool (inactive)</span>
     </div>
 
     <div class="card" onclick="showDetail('comp-chat-ctrl')">
       <div class="card-header"><div class="card-icon">💬</div><div><div class="card-name">ChatController.java</div><div class="card-file">controller/ChatController.java</div></div></div>
-      <div class="card-desc"><code>POST /api/chat</code> — accepts <code>{ message, sessionId }</code>, generates UUID sessionId if absent, calls <code>ChatClient</code> with the session memory key, returns <code>{ response, sessionId }</code>.</div>
+      <div class="card-desc"><code>POST /api/chat/stream</code> (SSE) — opens SseEmitter, commits HTTP 200 immediately, streams tokens via <code>Flux&lt;String&gt;.toIterable()</code>, sends keepalive every 15 s. <code>POST /api/chat</code> sync fallback with 170 s timeout.</div>
       <span class="card-layer tag-green">REST controller</span>
     </div>
 
     <div class="card" onclick="showDetail('comp-app-yml')">
       <div class="card-header"><div class="card-icon">📄</div><div><div class="card-name">application.yml</div><div class="card-file">resources/application.yml</div></div></div>
-      <div class="card-desc">Sets model name (<code>AI_CHAT_MODEL</code>) and local dev fallbacks for base-url/api-key. On CF, <code>GenAiVcapPostProcessor</code> overrides base-url and api-key from VCAP_SERVICES.</div>
+      <div class="card-desc">Sets model name (<code>AI_CHAT_MODEL</code>), H2 in-memory datasource (gives DB health indicator), RabbitMQ/Redis local fallbacks, and <code>spring.ai.retry.max-attempts: 1</code> to prevent retries doubling latency.</div>
       <span class="card-layer tag-amber">Config</span>
     </div>
 
     <div class="card" onclick="showDetail('comp-ui')">
-      <div class="card-header"><div class="card-icon">🎨</div><div><div class="card-name">App.jsx</div><div class="card-file">frontend/src/App.jsx</div></div></div>
-      <div class="card-desc">React chat UI. Dark theme. Message history, animated loading dots, suggested question chips, session management. Calls <code>POST /api/chat</code>.</div>
+      <div class="card-header"><div class="card-icon">🎨</div><div><div class="card-name">ChatPanel.jsx</div><div class="card-file">frontend/src/components/ChatPanel.jsx</div></div></div>
+      <div class="card-desc">React SSE streaming chat UI. Reads the SSE stream via <code>ReadableStream</code> API, appending tokens in real-time. Shows elapsed seconds for long responses. Suggested question chips. Session management.</div>
       <span class="card-layer tag-blue">React + Tailwind</span>
+    </div>
+
+    <div class="card" onclick="showDetail('comp-status')">
+      <div class="card-header"><div class="card-icon">📊</div><div><div class="card-name">SystemStatus.jsx</div><div class="card-file">frontend/src/components/SystemStatus.jsx</div></div></div>
+      <div class="card-desc">Polls <code>/actuator/health</code> every 15 s. Shows live status for five components: Spring Boot API, H2 Database, RabbitMQ, Redis, AI Model. RabbitMQ Console link opens the management UI.</div>
+      <span class="card-layer tag-blue">Health dashboard</span>
     </div>
 
     <div class="card" onclick="showDetail('comp-vite')">
@@ -438,33 +452,34 @@
 
 <script>
 const DETAILS = {
-  browser: {title:'Browser',tag:'React SPA',tagClass:'tag-blue',desc:'Single-page React application served at / by Spring Boot. Calls POST /api/chat as a same-origin relative URL — no CORS required. Maintains sessionId in component state for conversation continuity.',props:[['Endpoint','POST /api/chat'],['Session','UUID sessionId in React useState'],['Served by','Spring Boot classpath:/static/'],['Theme','Dark — gray-950, violet accents']]},
-  'spring-boot': {title:'Spring Boot App',tag:'CF App',tagClass:'tag-green',desc:'The entire application runs as a single Spring Boot process — REST API, Spring AI client, and embedded React frontend. No external databases or message queues. The only runtime dependency is the Tanzu Platform AI endpoint.',props:[['Framework','Spring Boot 3.5 / Spring AI 1.0.0'],['JDK','21 (java_buildpack_offline)'],['Memory','1G'],['Port','${PORT:8080} — CF assigns dynamically'],['Health check','GET /actuator/health']]},
-  'ai-endpoint': {title:'Tanzu Platform GenAI',tag:'AI Service',tagClass:'tag-violet',desc:'The Tanzu Platform GenAI tile exposes gpt-oss:20b as an OpenAI-compatible HTTP endpoint. Credentials (URL + JWT API key) are injected into the app via VCAP_SERVICES when the payflow-ai-chat-tools service is bound. Nothing secret in git.',props:[['Protocol','OpenAI Chat Completions API'],['Model','gpt-oss:20b — tool calling + conversation'],['URL field','credentials.endpoint.openai_api_base'],['Key field','credentials.endpoint.api_key (JWT)'],['Binding','payflow-ai-chat-tools CF service instance']]},
-  'cf-user-msg': {title:'Chat Request',tag:'REST',tagClass:'tag-blue',desc:'React posts { message, sessionId } to /api/chat. On the first message, sessionId is null — the server generates a UUID and returns it. React stores it in state and sends it with every subsequent message to maintain conversation continuity.',props:[['Endpoint','POST /api/chat'],['Request','{ message: string, sessionId?: string }'],['Response','{ response: string, sessionId: string }'],['SessionId','UUID — generated server-side on first call']]},
-  'cf-memory': {title:'Conversation Memory',tag:'Spring AI',tagClass:'tag-violet',desc:'MessageChatMemoryAdvisor reads InMemoryChatMemory for the sessionId and prepends all prior messages before each LLM call. Each browser session gets independent history. Clicking "New session" sends a new UUID, starting a fresh conversation.',props:[['Storage','InMemoryChatMemory (in-process heap)'],['Advisor','MessageChatMemoryAdvisor'],['Key','AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY'],['Scope','Per sessionId — isolated per browser session'],['Reset','New session → new UUID → fresh memory']]},
-  'cf-llm-call': {title:'LLM Call #1 — Tool Decision',tag:'Tool Calling',tagClass:'tag-violet',desc:'Spring AI sends the full prompt (system + history + user message + tool schemas auto-generated from @Tool annotations) to gpt-oss:20b. The model responds with tool_calls JSON. Spring AI parses this automatically — no application code needed.',props:[['Model','gpt-oss:20b'],['Input','System prompt + history + user message + 6 tool schemas'],['Response','tool_calls JSON (not a text answer yet)'],['Schema','Auto-generated from @Tool annotations']]},
-  'cf-tool-exec': {title:'Tool Execution',tag:'Java Reflection',tagClass:'tag-green',desc:'Spring AI calls each requested method on PaymentDataTools via reflection. Methods return plain Java objects (List, Map, String) which Spring AI serialises to JSON tool result messages. The application code does nothing — the framework handles the whole loop.',props:[['Mechanism','Java reflection (Spring AI internal)'],['Bean','PaymentDataTools @Component'],['Results','Serialised to JSON tool result messages'],['Loop','Transparent — Spring AI manages tool call / result / LLM iteration']]},
-  'cf-llm-call2': {title:'LLM Call #2 — Synthesis',tag:'gpt-oss:20b',tagClass:'tag-violet',desc:'Spring AI sends the updated message history including tool results back to gpt-oss:20b. The model synthesises a natural-language answer grounded in the actual data returned by the tools. No hallucinated figures — the data is in context.',props:[['Input','Full history + tool results'],['Output','Natural language answer'],['Grounded','Tool results are in context, not fabricated'],['Model','gpt-oss:20b']]},
-  'cf-response': {title:'Response',tag:'JSON',tagClass:'tag-green',desc:'ChatController returns { response, sessionId } as JSON. React appends the assistant message to the chat display. The response text may contain formatted data with line breaks, £ symbols, and structured lists rendered via whitespace-pre-wrap.',props:[['JSON','{ response: string, sessionId: string }'],['React','Appended to messages array'],['sessionId','Stored in useState for next request'],['Render','whitespace-pre-wrap — plain text, not markdown']]},
-  'step-fe': {title:'Step 1 — React Build',tag:'Build',tagClass:'tag-blue',desc:'npm ci installs locked dependencies, npm run build runs Vite in production mode. vite.config.js sets build.outDir to ../backend/src/main/resources/static — the bundle lands inside the Spring Boot source tree, ready to be packaged.',props:[['Command','cd frontend && npm ci && npm run build'],['Output','backend/src/main/resources/static/'],['Bundle','Minified JS/CSS + index.html']]},
-  'step-mvn': {title:'Step 2 — Maven Package',tag:'Build',tagClass:'tag-green',desc:'mvn clean package -DskipTests builds the Spring Boot fat jar. Maven includes React assets from src/main/resources/static/ under BOOT-INF/classes/static/. Spring Boot serves everything at /.',props:[['Command','cd backend && mvn clean package -DskipTests -q'],['Output','backend/target/payflow-ai.jar'],['Includes','Java + Spring AI deps + React assets'],['finalName','payflow-ai']]},
-  'step-services': {title:'Step 3 — CF Service Instance',tag:'CF',tagClass:'tag-orange',desc:'Create payflow-ai-chat-tools once. It is listed in manifest.yml services: — CF binds it on cf push and injects VCAP_SERVICES. No cf set-env for credentials. To inspect credentials for debugging: cf create-service-key, cf service-key, then delete the key. Never store the output.',props:[['Command','cf create-service ai-models chat-and-tools-model payflow-ai-chat-tools'],['Binding','Listed in manifest.yml services:'],['Credentials','Injected via VCAP_SERVICES — not in git'],['Inspect','cf create-service-key → cf service-key → cf delete-service-key']]},
-  'step-push': {title:'Step 4 — cf push',tag:'Deploy',tagClass:'tag-orange',desc:'CF CLI reads manifest.yml, uploads the jar, stages with java_buildpack_offline, binds payflow-ai-chat-tools, assigns PORT, and starts the app. GenAiVcapPostProcessor fires before any Spring beans are created and maps VCAP_SERVICES to spring.ai.openai.chat.* properties.',props:[['Reads','manifest.yml'],['Uploads','backend/target/payflow-ai.jar'],['Buildpack','java_buildpack_offline'],['Binds','payflow-ai-chat-tools → VCAP_SERVICES'],['Route','payflow-ai.<apps-domain>']]},
-  'step-live': {title:'App Live',tag:'Running',tagClass:'tag-green',desc:'Single CF route serves everything. React SPA loads at /, calls POST /api/chat for conversation. Health endpoint at /actuator/health. No CORS — frontend and backend share one route.',props:[['Route','https://payflow-ai.<apps-domain>'],['SPA','GET /'],['Chat','POST /api/chat'],['Health','GET /actuator/health']]},
-  'comp-aiconfig': {title:'AiConfig.java',tag:'Spring AI',tagClass:'tag-violet',desc:'Creates the ChatClient bean. defaultSystem() sets the PayFlow Intelligence persona and bank names. defaultAdvisors() installs MessageChatMemoryAdvisor with InMemoryChatMemory. defaultTools() registers PaymentDataTools.',props:[['Bean','ChatClient'],['System prompt','PayFlow Intelligence persona + risk scale'],['Memory','MessageChatMemoryAdvisor + InMemoryChatMemory'],['Tools','PaymentDataTools @Component bean']]},
-  'comp-vcap': {title:'GenAiVcapPostProcessor.java',tag:'CF VCAP',tagClass:'tag-orange',desc:'EnvironmentPostProcessor registered in META-INF/spring.factories. Reads VCAP_SERVICES["ai-models"][0], extracts credentials.endpoint.openai_api_base and api_key, and sets spring.ai.openai.chat.base-url and chat.api-key at highest priority. Does nothing when VCAP_SERVICES is absent.',props:[['Registration','META-INF/spring.factories'],['Fires','Before any Spring beans are created'],['URL field','credentials.endpoint.openai_api_base'],['Key field','credentials.endpoint.api_key'],['Priority','addFirst — overrides application.yml']]},
-  'comp-tools': {title:'PaymentDataTools.java',tag:'@Tool',tagClass:'tag-violet',desc:'A @Component Spring bean with six @Tool-annotated methods. The @Tool annotation value is the description the LLM uses to decide when to invoke it. Methods return plain Java objects — Spring AI serialises them automatically.',props:[['Annotation','@Tool (org.springframework.ai.tool.annotation.Tool)'],['Registration','ChatClient.defaultTools(paymentDataTools)'],['Return types','List<Map>, Map, String'],['Data','Mock data — no DB required'],['Banks','Fictional: Albion, Meridian, Crestfield, Harrington, Caledonian, Vantage']]},
-  'comp-chat-ctrl': {title:'ChatController.java',tag:'REST',tagClass:'tag-green',desc:'@RestController at /api/chat. Handles POST with ChatRequest record. Generates UUID sessionId if absent. Uses chatClient.prompt().user(msg).advisors(spec -> spec.param(MEMORY_KEY, sessionId)).call().content() pattern.',props:[['Endpoint','POST /api/chat'],['Request','record ChatRequest(String message, String sessionId)'],['Response','record ChatResponse(String response, String sessionId)'],['Memory key','AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY']]},
-  'comp-app-yml': {title:'application.yml',tag:'Config',tagClass:'tag-amber',desc:'Sets model name and local dev fallbacks. On CF, GenAiVcapPostProcessor overrides chat.base-url and chat.api-key from VCAP_SERVICES. Only AI_CHAT_MODEL remains relevant on CF — the URL and key come from the service binding.',props:[['base-url','${AI_BASE_URL:http://localhost:11434/v1} — local dev only'],['api-key','${AI_API_KEY:local} — local dev only'],['chat model','${AI_CHAT_MODEL:gpt-oss:20b}'],['port','${PORT:8080}']]},
-  'comp-ui': {title:'App.jsx',tag:'React',tagClass:'tag-blue',desc:'Full React chat UI in a single file. Header with model name. Message history (user + assistant bubbles). Animated loading dots. Suggested question chips. Session management (New session reloads the page with a fresh UUID).',props:[['Endpoint','POST /api/chat'],['State','messages[], sessionId, loading, input'],['Suggestions','6 one-click question buttons'],['Session','Reset via window.location.reload()']]},
+  browser: {title:'Browser',tag:'React SPA',tagClass:'tag-blue',desc:'Single-page React application served at / by Spring Boot. Calls POST /api/chat/stream as a same-origin SSE stream — tokens appear in the bubble in real-time. Maintains sessionId in component state for conversation continuity.',props:[['Endpoint','POST /api/chat/stream (SSE)'],['Session','UUID sessionId in React useState'],['Served by','Spring Boot classpath:/static/'],['Theme','Dark/light mode — violet accents']]},
+  'spring-boot': {title:'Spring Boot App',tag:'CF App',tagClass:'tag-green',desc:'The entire application runs as a single Spring Boot process — REST/SSE API, Spring AI streaming client, and embedded React frontend. CF managed services provide RabbitMQ, Redis, and AI endpoint. H2 in-memory database provides the DB health indicator.',props:[['Framework','Spring Boot 3.5 / Spring AI 1.0.0'],['JDK','21 (java_buildpack_offline)'],['Memory','1G'],['Port','${PORT:8080} — CF assigns dynamically'],['Health check','GET /actuator/health (5 components)']]},
+  'ai-endpoint': {title:'Tanzu Platform GenAI',tag:'AI Service',tagClass:'tag-violet',desc:'The Tanzu Platform GenAI tile exposes Devstral-Small-2507 as an OpenAI-compatible HTTP SSE endpoint via the GTO-models plan. Credentials (URL + JWT API key) are injected into the app via VCAP_SERVICES. The proxy does not support the OpenAI tools field — all models on this plan return 400 when tools are included.',props:[['Protocol','OpenAI Chat Completions API (streaming)'],['Model','mistralai/Devstral-Small-2507'],['Plan','GTO-models (dhaka foundation)'],['URL field','credentials.endpoint.openai_api_base'],['Key field','credentials.endpoint.api_key (JWT)'],['Binding','payflow-ai-chat-tools CF service instance'],['Limitation','tools field not supported — returns 400']]},
+  'cf-user-msg': {title:'Chat Request',tag:'SSE',tagClass:'tag-blue',desc:'React posts { message, sessionId } to /api/chat/stream. The server opens an SseEmitter with no timeout (0L). On the first message, sessionId is null — the server generates a UUID and sends it as the final event:done event.',props:[['Endpoint','POST /api/chat/stream'],['Request','{ message: string, sessionId?: string }'],['Response','SSE stream — data: tokens, event:done sessionId'],['SessionId','UUID — generated server-side on first call']]},
+  'cf-commit': {title:'HTTP 200 Committed',tag:'SseEmitter',tagClass:'tag-amber',desc:'emitter.send(SseEmitter.event().comment("connected")) is called synchronously before the AI call begins. This commits the HTTP 200 response headers to the client. Without this, if the AI fails immediately (e.g. model unavailable → fast 400), Spring Boot\'s error handling returns a 503 JSON body before any SSE events are sent — which the client cannot distinguish from a network error. A keepalive comment is also sent every 15s on a ScheduledExecutorService to reset CF GoRouter\'s 180s idle timeout.',props:[['First event','SSE comment "connected" — commits HTTP 200'],['Keepalive','SSE comment every 15s — resets GoRouter timeout'],['GoRouter idle timeout','180s'],['Retry config','spring.ai.retry.max-attempts: 1']]},
+  'cf-memory': {title:'Conversation Memory',tag:'Spring AI',tagClass:'tag-violet',desc:'MessageChatMemoryAdvisor reads InMemoryChatMemory for the sessionId and prepends all prior messages before each LLM call. The compact system prompt (~150 tokens) is always included as the system message. Each browser session gets independent history.',props:[['Storage','InMemoryChatMemory (in-process heap)'],['Advisor','MessageChatMemoryAdvisor'],['Key','ChatMemory.CONVERSATION_ID'],['Scope','Per sessionId — isolated per browser session'],['System prompt','~150 tokens — stats, banks, flagged txns, rules']]},
+  'cf-llm-call': {title:'LLM Call — Devstral Streams',tag:'No Tools',tagClass:'tag-violet',desc:'Spring AI sends the prompt (system + history + user message) to Devstral-Small-2507 with stream=true. No tools field is sent — the GTO-models proxy returns 400 when it is present. The model uses the embedded payment data from the system prompt to answer questions.',props:[['Model','mistralai/Devstral-Small-2507'],['Input','System prompt (data) + history + user message'],['No tools','Proxy does not support tools field'],['Temperature','0.5'],['Max tokens','1024']]},
+  'cf-stream': {title:'Token Streaming',tag:'SSE',tagClass:'tag-green',desc:'Flux<String> from chatClient.stream().content() is iterated with toIterable(). Each token is forwarded as data: <token> SSE event. React reads each event via ReadableStream API and appends it to the last message bubble. On completion, event:done data:<sessionId> is sent and the emitter completes.',props:[['Spring AI','chatClient.prompt().stream().content()'],['Iterator','Flux<String>.toIterable()'],['SSE event','data: <token>'],['Completion','event:done data:<sessionId>'],['Error','event:error data:<message>']]},
+  'step-fe': {title:'Step 1 — React Build',tag:'Build',tagClass:'tag-blue',desc:'npm ci installs locked dependencies, npm run build runs Vite in production mode. vite.config.js sets build.outDir to ../backend/src/main/resources/static — the bundle lands inside the Spring Boot source tree.',props:[['Command','cd frontend && npm ci && npm run build'],['Output','backend/src/main/resources/static/'],['Bundle','Minified JS/CSS + index.html']]},
+  'step-mvn': {title:'Step 2 — Maven Package',tag:'Build',tagClass:'tag-green',desc:'mvn clean package -DskipTests builds the Spring Boot fat jar. Maven includes React assets from src/main/resources/static/.',props:[['Command','cd backend && mvn clean package -DskipTests -q'],['Output','backend/target/payflow-ai.jar'],['Includes','Java + Spring AI deps + React assets']]},
+  'step-services': {title:'Step 3 — CF Service Instances',tag:'CF',tagClass:'tag-orange',desc:'Three services are required. Create them once; they persist across cf push cycles. Plans are specific to the dhaka foundation — run cf marketplace on other foundations to check available plans.',props:[['AI','cf create-service ai-models GTO-models payflow-ai-chat-tools'],['RabbitMQ','cf create-service p.rabbitmq rmq-single-node payflow-rabbitmq'],['Redis','cf create-service p.redis vk-ha-plan payflow-redis'],['Inspect AI key','cf create-service-key → cf service-key → cf delete-service-key']]},
+  'step-push': {title:'Step 4 — cf push',tag:'Deploy',tagClass:'tag-orange',desc:'CF CLI reads manifest.yml, uploads the jar, stages with java_buildpack_offline, binds all three services, assigns PORT. GenAiVcapPostProcessor maps AI VCAP_SERVICES to Spring AI properties. RedisSslFixPostProcessor patches the Redis SSL binding. Both fire before any Spring beans are created.',props:[['Reads','manifest.yml'],['Buildpack','java_buildpack_offline'],['Services','payflow-ai-chat-tools, payflow-rabbitmq, payflow-redis'],['Route','payflow-ai.<apps-domain>']]},
+  'step-live': {title:'App Live',tag:'Running',tagClass:'tag-green',desc:'Single CF route serves everything. React SPA at /, streaming chat at POST /api/chat/stream, health at /actuator/health showing all five components.',props:[['Route','https://payflow-ai.<apps-domain>'],['SPA','GET /'],['Chat','POST /api/chat/stream (SSE)'],['Health','GET /actuator/health']]},
+  'comp-aiconfig': {title:'AiConfig.java',tag:'Spring AI',tagClass:'tag-violet',desc:'Creates the ChatClient bean. defaultSystem() embeds the compact payment data prompt (~150 tokens: stats, bank balances, 8 flagged transactions, fraud rules). defaultAdvisors() installs MessageChatMemoryAdvisor with InMemoryChatMemory. No defaultTools() — proxy limitation.',props:[['Bean','ChatClient'],['System prompt','~150 tokens — compact payment data'],['Memory','MessageChatMemoryAdvisor + InMemoryChatMemory'],['Tools','None registered (GTO-models proxy limitation)']]},
+  'comp-vcap': {title:'GenAiVcapPostProcessor.java',tag:'CF VCAP',tagClass:'tag-orange',desc:'EnvironmentPostProcessor registered in META-INF/spring.factories. Reads VCAP_SERVICES["ai-models"][0], extracts credentials.endpoint.openai_api_base and api_key, sets spring.ai.openai.chat.base-url and chat.api-key at highest priority.',props:[['Registration','META-INF/spring.factories'],['Fires','Before any Spring beans'],['URL field','credentials.endpoint.openai_api_base'],['Key field','credentials.endpoint.api_key'],['Priority','addFirst — overrides application.yml']]},
+  'comp-redis-fix': {title:'RedisSslFixPostProcessor.java',tag:'Compat Fix',tagClass:'tag-red',desc:'EnvironmentPostProcessor registered in META-INF/spring.factories. java-cfenv-boot 3.1.x writes spring.data.redis.ssl=true (String) into the environment. Spring Boot 3.3+ changed RedisProperties.ssl to a nested Ssl record that binds spring.data.redis.ssl.enabled (Boolean), not the bare ssl key. Without this fix the app crashes at startup with a binding error. The processor detects the String value and adds the .enabled variant at highest priority.',props:[['Problem','java-cfenv-boot sets ssl=true (String)'],['Spring Boot 3.3+','Expects ssl.enabled (Boolean in Ssl record)'],['Fix','Adds spring.data.redis.ssl.enabled=<value> at addFirst priority'],['Same fix in','payflow-demo-cf']]},
+  'comp-tools': {title:'PaymentDataTools.java',tag:'@Tool (inactive)',tagClass:'tag-amber',desc:'A @Component Spring bean with six @Tool-annotated methods returning mock payment data. Not registered with ChatClient on this deployment due to the GTO-models proxy limitation. Available for re-activation on payflow-ai-epc targeting a tool-calling capable foundation.',props:[['Status','Present in code, NOT registered with ChatClient'],['Reason','GTO-models proxy returns 400 with tools field'],['EPC variant','payflow-ai-epc — will test tool calling'],['Data','Same mock data as embedded in system prompt']]},
+  'comp-chat-ctrl': {title:'ChatController.java',tag:'REST + SSE',tagClass:'tag-green',desc:'@RestController at /api/chat/stream (SSE) and /api/chat (sync fallback). SSE endpoint: opens SseEmitter(0L), commits HTTP 200, runs AI call in executor thread, streams Flux<String> tokens as SSE events, sends keepalive every 15s.',props:[['SSE endpoint','POST /api/chat/stream'],['Sync endpoint','POST /api/chat (170s timeout)'],['SseEmitter timeout','0L (no server-side timeout)'],['Keepalive','SSE comment every 15s'],['Memory key','ChatMemory.CONVERSATION_ID']]},
+  'comp-app-yml': {title:'application.yml',tag:'Config',tagClass:'tag-amber',desc:'Model name, H2 in-memory datasource (provides DB health indicator when no PostgreSQL is bound), RabbitMQ/Redis local dev fallbacks, and spring.ai.retry.max-attempts: 1 to prevent retries from doubling latency on slow models.',props:[['chat model','${AI_CHAT_MODEL:gpt-oss:20b}'],['retry','max-attempts: 1'],['datasource','H2 in-memory (jdbc:h2:mem:payflowdb)'],['rabbitmq','${RABBITMQ_HOST:localhost}:${RABBITMQ_PORT:5672}'],['redis','${REDIS_HOST:localhost}:${REDIS_PORT:6379}']]},
+  'comp-ui': {title:'ChatPanel.jsx',tag:'React',tagClass:'tag-blue',desc:'SSE streaming chat panel. Opens a fetch to /api/chat/stream, reads the body as ReadableStream, parses SSE events, appends tokens to the last message bubble in real-time. Shows elapsed seconds after 15s for slow models.',props:[['Endpoint','POST /api/chat/stream'],['State','messages[], sessionId, loading, loadingSeconds'],['SSE parse','ReadableStream → TextDecoder → line buffering'],['Suggestions','6 one-click question chips']]},
+  'comp-status': {title:'SystemStatus.jsx',tag:'React',tagClass:'tag-blue',desc:'Health dashboard polling /actuator/health every 15s. Maps Spring actuator component statuses to colour-coded indicators: UP (green), DOWN (red), UNKNOWN (amber). AI Model always shows Live (violet) — it is not directly health-checked.',props:[['Polls','GET /actuator/health every 15s'],['Components','api, db, rabbit, redis, ai'],['AI status','Always "Live" — violet indicator'],['RabbitMQ link','Opens management UI in new tab']]},
   'comp-vite': {title:'vite.config.js',tag:'Build',tagClass:'tag-blue',desc:'Sets build.outDir to ../backend/src/main/resources/static with emptyOutDir: true. Dev server on port 5174 with /api and /actuator proxied to localhost:8080.',props:[['build.outDir','../backend/src/main/resources/static'],['emptyOutDir','true'],['dev port','5174'],['proxy /api','→ http://localhost:8080']]},
-  'tool-recent-txns': {title:'getRecentTransactions',tag:'@Tool',tagClass:'tag-violet',desc:'Returns the N most recent payment transactions. Invoked when the user asks about recent activity, transaction history, or wants to see payments.',props:[['Signature','(int limit) → List<Map<String,Object>>'],['Fields','txnId, sender, receiver, amount, status, riskScore, timestamp'],['LLM trigger','Recent payments, transaction history']]},
-  'tool-stats': {title:'getPaymentStatistics',tag:'@Tool',tagClass:'tag-violet',desc:'Returns a 24-hour payment summary: total transactions (247), total volume (£4.8M), flagged count (18), fraud rate (7.3%), average transaction, average processing time.',props:[['Signature','() → Map<String,Object>'],['LLM trigger','Volume, statistics, KPIs, overview']]},
-  'tool-alerts': {title:'getFraudAlerts',tag:'@Tool',tagClass:'tag-violet',desc:'Returns current fraud alerts sorted by risk score descending. Each alert includes the triggered rule name, amount, risk score, sender account, and trigger timestamp.',props:[['Signature','(int limit) → List<Map<String,Object>>'],['Fields','alertId, rule, amount, riskScore, account, triggeredAt'],['LLM trigger','Fraud, alerts, critical payments, high risk']]},
-  'tool-rules': {title:'explainFraudDetectionRules',tag:'@Tool',tagClass:'tag-violet',desc:'Returns a formatted String documenting all four fraud rules with thresholds and behaviour. Useful for demos explaining the system.',props:[['Signature','() → String'],['Rules','HIGH_AMOUNT >£50k, RAPID_SUCCESSION >3/60s, ROUND_NUMBER, HIGH_RISK_ACCOUNT'],['LLM trigger','How fraud detection works']]},
-  'tool-balances': {title:'getAccountBalances',tag:'@Tool',tagClass:'tag-violet',desc:'Returns current GBP balances for all six fictional demo banks.',props:[['Signature','() → List<Map<String,Object>>'],['Banks','Albion £5M, Meridian £3.5M, Crestfield £2.75M, Harrington £4.2M, Caledonian £1.8M, Vantage £6.1M'],['LLM trigger','Balances, which bank has most money']]},
-  'tool-narrative': {title:'generateFraudNarrative',tag:'@Tool',tagClass:'tag-violet',desc:'Generates a detailed investigation narrative for a given transaction reference — timeline, rule triggers, risk breakdown, and recommended action.',props:[['Signature','(String transactionReference) → String'],['LLM trigger','Investigate or explain a specific transaction']]},
+  'tool-recent-txns': {title:'getRecentTransactions',tag:'@Tool (inactive)',tagClass:'tag-amber',desc:'Returns the N most recent payment transactions. Registered in PaymentDataTools.java but not active on this deployment.',props:[['Signature','(int limit) → List<Map<String,Object>>'],['Fields','txnId, sender, receiver, amount, status, riskScore, timestamp'],['Status','Inactive — data embedded in system prompt instead']]},
+  'tool-stats': {title:'getPaymentStatistics',tag:'@Tool (inactive)',tagClass:'tag-amber',desc:'Returns a 24-hour payment summary.',props:[['Signature','() → Map<String,Object>'],['Status','Inactive — data embedded in system prompt instead']]},
+  'tool-alerts': {title:'getFraudAlerts',tag:'@Tool (inactive)',tagClass:'tag-amber',desc:'Returns current fraud alerts sorted by risk score descending.',props:[['Signature','(int limit) → List<Map<String,Object>>'],['Status','Inactive — data embedded in system prompt instead']]},
+  'tool-rules': {title:'explainFraudDetectionRules',tag:'@Tool (inactive)',tagClass:'tag-amber',desc:'Returns a formatted String documenting all four fraud rules.',props:[['Signature','() → String'],['Status','Inactive — data embedded in system prompt instead']]},
+  'tool-balances': {title:'getAccountBalances',tag:'@Tool (inactive)',tagClass:'tag-amber',desc:'Returns current GBP balances for all six fictional demo banks.',props:[['Signature','() → List<Map<String,Object>>'],['Status','Inactive — data embedded in system prompt instead']]},
+  'tool-narrative': {title:'generateFraudNarrative',tag:'@Tool (inactive)',tagClass:'tag-amber',desc:'Generates a detailed investigation narrative for a given transaction reference.',props:[['Signature','(String transactionReference) → String'],['Status','Inactive — data embedded in system prompt instead']]},
 }
 
 function showDetail(key) {
@@ -478,23 +493,7 @@ function showDetail(key) {
   document.getElementById('dp').classList.add('open')
 }
 function closePanel() { document.getElementById('dp').classList.remove('open') }
-function setActive(el) {
-  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'))
-  el.classList.add('active')
-}
-const sections = ['overview','tools','chat-flow','build','components']
-window.addEventListener('scroll', () => {
-  const pos = window.scrollY + 120
-  for (let i = sections.length - 1; i >= 0; i--) {
-    const el = document.getElementById(sections[i])
-    if (el && el.offsetTop <= pos) {
-      document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'))
-      const link = document.querySelector(`nav a[href="#${sections[i]}"]`)
-      if (link) link.classList.add('active')
-      break
-    }
-  }
-})
+function setActive(el) { document.querySelectorAll('nav a').forEach(a => a.classList.remove('active')); el.classList.add('active') }
 </script>
 </body>
 </html>

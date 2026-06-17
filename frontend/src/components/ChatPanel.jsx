@@ -39,12 +39,25 @@ export default function ChatPanel() {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingSeconds, setLoadingSeconds] = useState(0)
   const [sessionId, setSessionId] = useState(null)
   const bottomRef = useRef(null)
+  const loadingTimerRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  useEffect(() => {
+    if (loading) {
+      setLoadingSeconds(0)
+      loadingTimerRef.current = setInterval(() => setLoadingSeconds(s => s + 1), 1000)
+    } else {
+      clearInterval(loadingTimerRef.current)
+      setLoadingSeconds(0)
+    }
+    return () => clearInterval(loadingTimerRef.current)
+  }, [loading])
 
   async function send(text) {
     const msg = text || input.trim()
@@ -62,9 +75,11 @@ export default function ChatPanel() {
 
       if (!res.ok) {
         const txt = await res.text().catch(() => '')
+        let detail = txt.slice(0, 300)
+        try { detail = JSON.parse(txt).error || JSON.parse(txt).message || detail } catch (_) {}
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: `⚠️ Error ${res.status} from AI backend.\n\n${txt.slice(0, 300)}`
+          content: `⚠️ The AI model is temporarily unavailable (${res.status}). ${detail ? '\n\n' + detail : 'Please try again in a moment.'}`
         }])
         return
       }
@@ -128,13 +143,13 @@ export default function ChatPanel() {
   }
 
   return (
-    <div className="max-w-3xl flex flex-col h-[calc(100vh-160px)]">
+    <div className="w-full flex flex-col h-[calc(100vh-160px)]">
       {/* Header strip */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <MessageSquare size={16} className="text-violet-500" />
           <span className="text-slate-900 dark:text-white font-semibold text-sm">PayFlow Intelligence</span>
-          <span className="text-[10px] font-mono text-violet-500 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full">gpt-oss:20b · streaming</span>
+          <span className="text-[10px] font-mono text-violet-500 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full">Devstral-Small · streaming</span>
         </div>
         {sessionId && (
           <button
@@ -151,11 +166,22 @@ export default function ChatPanel() {
         {messages.map((m, i) => <Bubble key={i} {...m} />)}
         {loading && !messages[messages.length - 1]?.streaming && (
           <div className="flex gap-3">
-            <div className="w-7 h-7 rounded-full bg-violet-700 flex items-center justify-center text-xs font-bold">AI</div>
-            <div className="bg-white dark:bg-[#141e35] border border-slate-200 dark:border-white/[0.06] rounded-2xl px-4 py-3 flex gap-1 items-center">
-              {[0,1,2].map(i => (
-                <div key={i} className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: `${i*0.15}s` }} />
-              ))}
+            <div className="w-7 h-7 rounded-full bg-violet-700 flex items-center justify-center text-xs font-bold flex-shrink-0">AI</div>
+            <div className="bg-white dark:bg-[#141e35] border border-slate-200 dark:border-white/[0.06] rounded-2xl px-4 py-3 flex flex-col gap-1.5">
+              <div className="flex gap-1 items-center">
+                {[0,1,2].map(i => (
+                  <div key={i} className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: `${i*0.15}s` }} />
+                ))}
+              </div>
+              {loadingSeconds >= 5 && (
+                <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                  {loadingSeconds < 15
+                    ? 'Generating response…'
+                    : loadingSeconds < 60
+                    ? `Generating response… (${loadingSeconds}s)`
+                    : `Still working… (${loadingSeconds}s)`}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -178,7 +204,7 @@ export default function ChatPanel() {
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="Ask anything about payments, fraud, or balances…"
-          className="flex-1 bg-white dark:bg-[#141e35] border border-slate-200 dark:border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-gray-100 placeholder-slate-400 focus:outline-none focus:border-violet-500"
+          className="flex-1 bg-white dark:bg-[#141e35] border border-slate-200 dark:border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 caret-violet-500 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-violet-500"
         />
         <button type="submit" disabled={!input.trim() || loading}
           className="bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors">
