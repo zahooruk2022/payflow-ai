@@ -90,7 +90,7 @@ export default function SystemStatus() {
 
       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/[0.04]">
         <a
-          href="https://rmq-05b18791-f4b3-491a-be4c-179806d0079f.sys.dhaka.cf-app.com"
+          href="#"
           target="_blank"
           rel="noreferrer"
           className="text-blue-500 hover:text-blue-400 text-[10px] font-medium flex items-center gap-1"

@@ -1,14 +1,14 @@
 # CLAUDE.md — PayFlow AI
 
-Spring AI demo app: AI payment analyst on `mistralai/Devstral-Small-2507` (GTO-models plan, Tanzu Platform dhaka).
+Spring AI demo app: AI payment analyst on `mistralai/Devstral-Small-2507` (Tanzu Platform GenAI).
 Data embedded in system prompt. SSE streaming chat with per-session memory.
 Deploys as a single jar to Tanzu Application Service via `cf push`.
 GitHub: https://github.com/zahooruk2022/payflow-ai
 
-Model (Tanzu Platform GenAI — dhaka foundation):
+Model (Tanzu Platform GenAI):
 - **mistralai/Devstral-Small-2507** — streaming chat via OpenAI-compatible SSE
 
-> **Tool calling is disabled.** The GTO-models proxy on dhaka returns 400 when the `tools` field is present in OpenAI API requests (affects all three available models: Devstral, gpt-oss-120b, gemma-4-31B). Payment data is embedded directly in the system prompt instead. `PaymentDataTools.java` remains in the codebase for the `payflow-ai-epc` variant where native tool calling may work.
+> **Tool calling is disabled.** The AI proxy returns 400 when the `tools` field is present in OpenAI API requests (affects all three available models: Devstral, gpt-oss-120b, gemma-4-31B). Payment data is embedded directly in the system prompt instead. `PaymentDataTools.java` remains in the codebase for the `payflow-ai-epc` variant where native tool calling may work.
 
 ---
 
@@ -22,9 +22,9 @@ cd backend && mvn spring-boot:run
 
 cd frontend && npm install && npm run dev   # http://localhost:5174
 
-# CF deploy (one-time service setup — dhaka foundation)
-cf target -a https://api.sys.dhaka.cf-app.com
-cf create-service ai-models GTO-models payflow-ai-chat-tools
+# CF deploy (one-time service setup)
+cf target -a https://api.sys.<your-foundation-domain>
+cf create-service ai-models <your-ai-plan> payflow-ai-chat-tools
 cf create-service p.rabbitmq rmq-single-node payflow-rabbitmq
 cf create-service p.redis vk-ha-plan payflow-redis
 

@@ -56,11 +56,11 @@ npm run dev
 
 ## Deploy to Cloud Foundry / Tanzu Application Service
 
-Tested on Tanzu Platform dhaka (`api.sys.dhaka.cf-app.com`, GTO-models plan).
+Tested on Tanzu Platform GenAI. Check `cf marketplace` for available plans on your foundation.
 
 ```bash
 # 1. Create service instances (one-time)
-cf create-service ai-models GTO-models payflow-ai-chat-tools
+cf create-service ai-models <your-ai-plan> payflow-ai-chat-tools
 cf create-service p.rabbitmq rmq-single-node payflow-rabbitmq
 cf create-service p.redis vk-ha-plan payflow-redis
 
@@ -76,7 +76,7 @@ cf app payflow-ai   # shows the route
 
 AI credentials (base URL + API key) are injected from `VCAP_SERVICES` at startup by `GenAiVcapPostProcessor` — no `cf set-env` needed. The model name is set in `manifest.yml`.
 
-> **Dhaka service plans**: `ai-models / GTO-models`, `p.rabbitmq / rmq-single-node`, `p.redis / vk-ha-plan`. Plans vary by foundation — check `cf marketplace` on your target.
+> **Service plans vary by foundation** — check `cf marketplace -e ai-models` on your target foundation to see available plans.
 
 ---
 
@@ -98,7 +98,7 @@ CF managed services:
   H2 in-memory           → spring.datasource.*  (local fallback, gives DB health indicator)
 ```
 
-> **Why no tool calling?** The GTO-models proxy on dhaka returns 400 Bad Request when the OpenAI `tools` field is present in the request — all three available models are affected. Payment data is embedded directly in the system prompt as a workaround. `PaymentDataTools.java` remains in the codebase for the `payflow-ai-epc` variant targeting a foundation with native tool calling support.
+> **Why no tool calling?** The AI proxy returns 400 Bad Request when the OpenAI `tools` field is present in the request — all three available models are affected. Payment data is embedded directly in the system prompt as a workaround. `PaymentDataTools.java` remains in the codebase for the `payflow-ai-epc` variant targeting a foundation with native tool calling support.
 
 ---
 
@@ -108,7 +108,7 @@ CF managed services:
 
 | CF Service | Plan | Provides |
 |---|---|---|
-| `payflow-ai-chat-tools` | `GTO-models` | `spring.ai.openai.chat.base-url` + `api-key` |
+| `payflow-ai-chat-tools` | `<your-ai-plan>` | `spring.ai.openai.chat.base-url` + `api-key` |
 | `payflow-rabbitmq` | `rmq-single-node` | `spring.rabbitmq.*` |
 | `payflow-redis` | `vk-ha-plan` | `spring.data.redis.*` |
 

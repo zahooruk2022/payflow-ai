@@ -35,6 +35,6 @@ applications:
         -Djava.security.egd=file:/dev/./urandom
 
       # Model name is not in the VCAP binding — set it here.
-      # dhaka (api.sys.dhaka.cf-app.com) GTO-models plan:
+      # Check cf marketplace on your foundation for available model names:
       #   mistralai/Devstral-Small-2507 | google/gemma-4-31B | openai/gpt-oss-120b
       AI_CHAT_MODEL: mistralai/Devstral-Small-2507
