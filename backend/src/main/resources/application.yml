@@ -4,15 +4,15 @@ spring:
 
   ai:
     openai:
-      # On Tanzu Platform: set AI_BASE_URL and AI_API_KEY via cf set-env or manifest.yml env block.
-      # Locally with Ollama: base-url: http://localhost:11434/v1  api-key: local
+      # On CF: base-url and api-key are set per-type by GenAiVcapPostProcessor from VCAP_SERVICES.
+      # Locally: override with AI_BASE_URL / AI_API_KEY env vars, or edit the defaults below.
       base-url: ${AI_BASE_URL:http://localhost:11434/v1}
-      api-key: ${AI_API_KEY:local}
+      api-key:  ${AI_API_KEY:local}
       chat:
         options:
-          model: ${AI_CHAT_MODEL:gpt-oss:20b}
+          model:       ${AI_CHAT_MODEL:gpt-oss:20b}
           temperature: 0.5
-          max-tokens: 1024
+          max-tokens:  1024
       embedding:
         options:
           model: ${AI_EMBEDDING_MODEL:nomic-embed-text-v2-moe}

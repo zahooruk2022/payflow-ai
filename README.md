@@ -64,21 +64,21 @@ npm run dev
 ## Deploy to Cloud Foundry / Tanzu Application Service
 
 ```bash
-# 1. Build (bundles React into the jar)
+# 1. Create AI service instances (one-time)
+cf create-service ai-models chat-and-tools-model payflow-ai-chat-tools
+cf create-service ai-models <embedding-plan>     payflow-ai-embeddings
+
+# 2. Build (bundles React into the jar)
 ./build.sh
 
-# 2. Set credentials (do NOT put the API key in manifest.yml)
-cf set-env payflow-ai AI_BASE_URL  https://<your-genai-endpoint>/v1
-cf set-env payflow-ai AI_API_KEY   <your-api-key>
-
-# 3. Push
+# 3. Push — services are bound automatically via manifest.yml
 cf push
 
 # 4. Open
 cf app payflow-ai   # shows the route
 ```
 
-The manifest uses `gpt-oss:20b` and `nomic-embed-text-v2-moe` by default. Override any model via env vars.
+Credentials (base URL + API key) are injected from VCAP_SERVICES at startup by `GenAiVcapPostProcessor` — no `cf set-env` needed. Model names (`gpt-oss:20b`, `nomic-embed-text-v2-moe`) are set in `manifest.yml` since the service binding does not expose them.
 
 ---
 
@@ -106,13 +106,22 @@ No external databases or message queues — the only runtime dependency is the T
 
 All via environment variables:
 
+**On CF** — credentials come from VCAP_SERVICES (service binding), no env vars needed for URL/key:
+
+| CF Service | Provides |
+|---|---|
+| `payflow-ai-chat-tools` | `spring.ai.openai.chat.base-url` + `chat.api-key` |
+| `payflow-ai-embeddings` | `spring.ai.openai.embedding.base-url` + `embedding.api-key` |
+
+**Env vars** (manifest.yml + local dev fallback):
+
 | Variable | Default | Description |
 |---|---|---|
-| `AI_BASE_URL` | `http://localhost:11434/v1` | OpenAI-compatible LLM base URL |
-| `AI_API_KEY` | `local` | API key (set via `cf set-env`, never in manifest) |
-| `AI_CHAT_MODEL` | `gpt-oss:20b` | Chat + tool-calling model name |
-| `AI_EMBEDDING_MODEL` | `nomic-embed-text-v2-moe` | Embedding model name |
-| `PORT` | `8080` | Server port (set automatically by CF) |
+| `AI_CHAT_MODEL` | `gpt-oss:20b` | Chat model name (not in binding) |
+| `AI_EMBEDDING_MODEL` | `nomic-embed-text-v2-moe` | Embedding model name (not in binding) |
+| `AI_BASE_URL` | `http://localhost:11434/v1` | Local dev only — overridden by VCAP on CF |
+| `AI_API_KEY` | `local` | Local dev only — overridden by VCAP on CF |
+| `PORT` | `8080` | Set automatically by CF |
 
 ---
 

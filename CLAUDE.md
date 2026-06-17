@@ -21,11 +21,12 @@ cd backend && mvn spring-boot:run
 
 cd frontend && npm install && npm run dev   # http://localhost:5174
 
-# CF deploy
-./build.sh
-cf set-env payflow-ai AI_BASE_URL  https://<tanzu-ai-endpoint>/v1
-cf set-env payflow-ai AI_API_KEY   <api-key>
-cf push
+# CF deploy (one-time service setup)
+cf create-service ai-models chat-and-tools-model payflow-ai-chat-tools
+cf create-service ai-models <embedding-plan>     payflow-ai-embeddings
+
+# Then every deploy:
+./build.sh && cf push
 ```
 
 ---
@@ -51,4 +52,5 @@ cf push
 - **@Tool** methods in `PaymentDataTools` use `org.springframework.ai.tool.annotation.Tool`.
 - **SimpleVectorStore** is in-memory — seeded at startup in `SemanticSearchService@PostConstruct`. No external vector DB needed.
 - **Conversation memory** key: `AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY` passed per request via `.advisors(spec -> spec.param(...))`.
-- Both chat and embedding models share the same `spring.ai.openai.base-url` — Tanzu Platform AI exposes both on one OpenAI-compatible endpoint.
+- Each AI service binding provides its own `openai_api_base` URL and JWT `api_key`. `GenAiVcapPostProcessor` reads VCAP_SERVICES and sets `spring.ai.openai.chat.base-url` / `spring.ai.openai.embedding.base-url` per-type. Registered in `META-INF/spring.factories` (same pattern as `RedisSslFixPostProcessor` in payflow-demo-cf).
+- Binding whose CF instance name contains "embed" is mapped to embedding properties; all others to chat properties.

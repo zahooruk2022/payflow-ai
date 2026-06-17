@@ -2,9 +2,14 @@
 # PayFlow AI — Cloud Foundry deployment manifest
 #
 # Before pushing:
-#   1. Set AI credentials: see "Configure AI credentials" in README
+#   1. Create the AI service instances (one-time):
+#        cf create-service ai-models chat-and-tools-model payflow-ai-chat-tools
+#        cf create-service ai-models <embedding-plan>     payflow-ai-embeddings
 #   2. Run ./build.sh
 #   3. cf push
+#
+# Credentials (base URL + API key) are injected automatically via VCAP_SERVICES.
+# No cf set-env needed for AI credentials.
 
 applications:
   - name: payflow-ai
@@ -18,6 +23,10 @@ applications:
     health-check-type: http
     health-check-http-endpoint: /actuator/health
 
+    services:
+      - payflow-ai-chat-tools    # → spring.ai.openai.chat.base-url + api-key
+      - payflow-ai-embeddings    # → spring.ai.openai.embedding.base-url + api-key
+
     env:
       JBP_CONFIG_OPEN_JDK_JRE: '{ jre: { version: 21.+ } }'
       JAVA_OPTS: >-
@@ -25,10 +34,6 @@ applications:
         -XX:MaxRAMPercentage=65.0
         -Djava.security.egd=file:/dev/./urandom
 
-      # Tanzu Platform AI credentials — set these before cf push:
-      #   cf set-env payflow-ai AI_BASE_URL  https://<your-genai-endpoint>/v1
-      #   cf set-env payflow-ai AI_API_KEY   <your-api-key>
-      # Or add them directly here (do NOT commit secrets to git):
-      AI_BASE_URL:          https://replace-me.genai.example.com/v1
-      AI_CHAT_MODEL:        gpt-oss:20b
-      AI_EMBEDDING_MODEL:   nomic-embed-text-v2-moe
+      # Model names are not in the VCAP binding — set them here
+      AI_CHAT_MODEL:       gpt-oss:20b
+      AI_EMBEDDING_MODEL:  nomic-embed-text-v2-moe
