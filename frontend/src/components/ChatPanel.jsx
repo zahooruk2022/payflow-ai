@@ -6,11 +6,11 @@ const SUGGESTED = [
   "Show me the 5 most recent transactions",
   "Explain the fraud detection rules",
   "Which bank has the highest balance?",
-  "Generate a fraud narrative for PF-20261007",
+  "Generate a fraud narrative for PF-20261017-001",
   "Are there any critical risk alerts right now?",
 ]
 
-function Bubble({ role, content }) {
+function Bubble({ role, content, streaming }) {
   const isUser = role === 'user'
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
@@ -24,7 +24,10 @@ function Bubble({ role, content }) {
           ? 'bg-blue-600/20 border border-blue-700/40 text-blue-100 dark:text-blue-100'
           : 'bg-white dark:bg-[#141e35] border border-slate-200 dark:border-white/[0.06] text-slate-800 dark:text-slate-200'
       }`}>
-        <div className="whitespace-pre-wrap">{content}</div>
+        <div className="whitespace-pre-wrap">
+          {content}
+          {streaming && <span className="inline-block w-0.5 h-3.5 bg-violet-400 ml-0.5 animate-pulse align-middle" />}
+        </div>
       </div>
     </div>
   )
@@ -49,20 +52,74 @@ export default function ChatPanel() {
     setInput('')
     setMessages(prev => [...prev, { role: 'user', content: msg }])
     setLoading(true)
+
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: msg, sessionId }),
       })
+
       if (!res.ok) {
         const txt = await res.text().catch(() => '')
-        setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Error ${res.status} from AI backend. Check CF logs.\n\n${txt.slice(0, 300)}` }])
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `⚠️ Error ${res.status} from AI backend.\n\n${txt.slice(0, 300)}`
+        }])
         return
       }
-      const data = await res.json()
-      if (!sessionId) setSessionId(data.sessionId)
-      setMessages(prev => [...prev, { role: 'assistant', content: data.response }])
+
+      // Add empty streaming message
+      setMessages(prev => [...prev, { role: 'assistant', content: '', streaming: true }])
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let fullContent = ''
+      let expectSessionId = false
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (line === 'event:done') {
+            expectSessionId = true
+          } else if (line.startsWith('event:error')) {
+            // next data line is the error message
+            expectSessionId = false
+          } else if (line.startsWith('data:')) {
+            const payload = line.slice(5) // strip 'data:' prefix
+            if (expectSessionId) {
+              if (!sessionId) setSessionId(payload.trim())
+              expectSessionId = false
+            } else {
+              fullContent += payload
+              setMessages(prev => {
+                const msgs = [...prev]
+                msgs[msgs.length - 1] = { role: 'assistant', content: fullContent, streaming: true }
+                return msgs
+              })
+            }
+          }
+        }
+      }
+
+      // Mark streaming complete
+      setMessages(prev => {
+        const msgs = [...prev]
+        if (msgs.length > 0) {
+          msgs[msgs.length - 1] = {
+            role: 'assistant',
+            content: fullContent || '⚠️ No response received from the AI model.',
+            streaming: false
+          }
+        }
+        return msgs
+      })
     } catch (e) {
       setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Network error: ${e.message}` }])
     } finally {
@@ -77,11 +134,11 @@ export default function ChatPanel() {
         <div className="flex items-center gap-2">
           <MessageSquare size={16} className="text-violet-500" />
           <span className="text-slate-900 dark:text-white font-semibold text-sm">PayFlow Intelligence</span>
-          <span className="text-[10px] font-mono text-violet-500 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full">gpt-oss:20b</span>
+          <span className="text-[10px] font-mono text-violet-500 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full">gpt-oss:20b · streaming</span>
         </div>
         {sessionId && (
           <button
-            onClick={() => { setSessionId(null); setMessages([{ role: 'assistant', content: "New session started. How can I help?" }]) }}
+            onClick={() => { setSessionId(null); setMessages([{ role: 'assistant', content: 'New session started. How can I help?' }]) }}
             className="text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           >
             New session
@@ -92,7 +149,7 @@ export default function ChatPanel() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto rounded-xl border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-[#141e35] p-4 space-y-4 min-h-0">
         {messages.map((m, i) => <Bubble key={i} {...m} />)}
-        {loading && (
+        {loading && !messages[messages.length - 1]?.streaming && (
           <div className="flex gap-3">
             <div className="w-7 h-7 rounded-full bg-violet-700 flex items-center justify-center text-xs font-bold">AI</div>
             <div className="bg-white dark:bg-[#141e35] border border-slate-200 dark:border-white/[0.06] rounded-2xl px-4 py-3 flex gap-1 items-center">
