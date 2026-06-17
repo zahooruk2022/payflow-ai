@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: payflow-ai
+
+  ai:
+    openai:
+      # On Tanzu Platform: set AI_BASE_URL and AI_API_KEY via cf set-env or manifest.yml env block.
+      # Locally with Ollama: base-url: http://localhost:11434/v1  api-key: local
+      base-url: ${AI_BASE_URL:http://localhost:11434/v1}
+      api-key: ${AI_API_KEY:local}
+      chat:
+        options:
+          model: ${AI_CHAT_MODEL:gpt-oss:20b}
+          temperature: 0.5
+          max-tokens: 1024
+      embedding:
+        options:
+          model: ${AI_EMBEDDING_MODEL:nomic-embed-text-v2-moe}
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.demo.payflowai: DEBUG
+    org.springframework.ai: INFO

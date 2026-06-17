@@ -1,0 +1,34 @@
+---
+# PayFlow AI — Cloud Foundry deployment manifest
+#
+# Before pushing:
+#   1. Set AI credentials: see "Configure AI credentials" in README
+#   2. Run ./build.sh
+#   3. cf push
+
+applications:
+  - name: payflow-ai
+    buildpacks:
+      - java_buildpack_offline
+    path: backend/target/payflow-ai.jar
+    instances: 1
+    memory: 1G
+    disk_quota: 512M
+
+    health-check-type: http
+    health-check-http-endpoint: /actuator/health
+
+    env:
+      JBP_CONFIG_OPEN_JDK_JRE: '{ jre: { version: 21.+ } }'
+      JAVA_OPTS: >-
+        -XX:+UseG1GC
+        -XX:MaxRAMPercentage=65.0
+        -Djava.security.egd=file:/dev/./urandom
+
+      # Tanzu Platform AI credentials — set these before cf push:
+      #   cf set-env payflow-ai AI_BASE_URL  https://<your-genai-endpoint>/v1
+      #   cf set-env payflow-ai AI_API_KEY   <your-api-key>
+      # Or add them directly here (do NOT commit secrets to git):
+      AI_BASE_URL:          https://replace-me.genai.example.com/v1
+      AI_CHAT_MODEL:        gpt-oss:20b
+      AI_EMBEDDING_MODEL:   nomic-embed-text-v2-moe
