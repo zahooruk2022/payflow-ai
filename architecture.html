@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PayFlow AI — Architecture &amp; Flows</title>
+<style>
+  :root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--blue:#58a6ff;--green:#3fb950;--amber:#d29922;--red:#f85149;--purple:#bc8cff;--orange:#f0883e;--violet:#a371f7;--teal:#39d353}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
+  header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+  .logo{font-size:20px;font-weight:700;color:var(--violet);letter-spacing:-.5px}.logo span{color:var(--text)}
+  .ai-badge{background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.06em}
+  nav{display:flex;gap:4px;margin-left:auto}
+  nav a{color:var(--muted);text-decoration:none;padding:6px 14px;border-radius:6px;font-size:13px;font-weight:500;transition:all .15s;border:1px solid transparent}
+  nav a:hover,nav a.active{color:var(--text);background:var(--bg3);border-color:var(--border)}
+  main{max-width:1300px;margin:0 auto;padding:40px 32px 80px}
+  h1{font-size:28px;font-weight:700;margin-bottom:8px}
+  .subtitle{color:var(--muted);margin-bottom:40px;font-size:15px}
+  section{margin-bottom:56px}
+  section>h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:24px}
+
+  /* detail panel */
+  #dp{display:none;position:fixed;right:0;top:0;bottom:0;width:360px;background:var(--bg2);border-left:1px solid var(--border);z-index:200;overflow-y:auto;padding:24px;box-shadow:-8px 0 32px rgba(0,0,0,.4)}
+  #dp.open{display:block}
+  .close-btn{position:absolute;top:16px;right:16px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
+  .close-btn:hover{color:var(--text)}
+  #dp h3{font-size:16px;font-weight:700;margin-bottom:4px;margin-top:4px}
+  .dp-tag{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:16px}
+  .dp-desc{color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:20px}
+  .dp-props{list-style:none}.dp-props li{padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:8px;align-items:flex-start}.dp-props li:last-child{border-bottom:none}
+  .pk{color:var(--muted);min-width:120px;flex-shrink:0}.pv{color:var(--text);font-family:ui-monospace,monospace;font-size:12px}
+
+  /* nodes */
+  .node{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .2s;text-align:center;position:relative}
+  .node:hover{transform:translateY(-2px);box-shadow:0 4px 24px rgba(0,0,0,.4)}
+  .n-icon{font-size:22px;margin-bottom:6px}.n-title{font-size:13px;font-weight:600}.n-sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .n-badge{position:absolute;top:-6px;right:-6px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;font-size:10px;padding:1px 6px;color:var(--muted);font-family:ui-monospace,monospace}
+  .node.browser{border-color:#58a6ff40;color:var(--blue)}
+  .node.spring{border-color:#3fb95040;color:var(--green)}
+  .node.ai-model{border-color:#a371f740;color:var(--violet)}
+  .node.cf-platform{border-color:#d2992240;color:var(--amber)}
+
+  /* cards */
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;cursor:pointer;transition:all .2s}
+  .card:hover{border-color:var(--muted);transform:translateY(-1px)}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .card-icon{font-size:20px}.card-name{font-weight:600;font-size:14px}.card-file{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace}
+  .card-desc{color:var(--muted);font-size:12px;line-height:1.6}
+  .card-layer{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-top:10px;padding:2px 8px;border-radius:20px;display:inline-block}
+
+  /* build flow */
+  .flow-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px 32px}
+  .flow-step{display:flex;align-items:flex-start;gap:20px;cursor:pointer;padding:14px;border-radius:10px;transition:background .15s}
+  .flow-step:hover{background:var(--bg3)}
+  .step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:2px}
+  .step-body{flex:1}.step-title{font-weight:600;font-size:14px;margin-bottom:4px}.step-desc{color:var(--muted);font-size:13px;line-height:1.6}
+  .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  .tag{font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;border:1px solid}
+  .connector{width:1px;height:24px;margin-left:29px;background:var(--border)}
+
+  /* code block */
+  .code-block{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px 20px;font-family:ui-monospace,monospace;font-size:12px;color:var(--muted);overflow-x:auto;line-height:1.7}
+  .code-block .k{color:var(--blue)}.code-block .s{color:var(--green)}.code-block .c{color:#484f58;font-style:italic}.code-block .v{color:var(--violet)}
+
+  /* tools grid */
+  .tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  .tool-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s}
+  .tool-card:hover{border-color:#a371f740;transform:translateY(-1px)}
+  .tool-name{font-size:13px;font-weight:600;font-family:ui-monospace,monospace;color:var(--violet);margin-bottom:4px}
+  .tool-sig{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;margin-bottom:6px}
+  .tool-desc{font-size:12px;color:var(--muted);line-height:1.5}
+
+  /* tags */
+  .tag-blue{background:#58a6ff18;border-color:#58a6ff40;color:var(--blue)}
+  .tag-green{background:#3fb95018;border-color:#3fb95040;color:var(--green)}
+  .tag-orange{background:#f0883e18;border-color:#f0883e40;color:var(--orange)}
+  .tag-red{background:#f8514918;border-color:#f8514940;color:var(--red)}
+  .tag-violet{background:#a371f718;border-color:#a371f740;color:var(--violet)}
+  .tag-amber{background:#d2992218;border-color:#d2992240;color:var(--amber)}
+  .tag-purple{background:#bc8cff18;border-color:#bc8cff40;color:var(--purple)}
+  .text-blue{color:var(--blue)}.text-green{color:var(--green)}.text-violet{color:var(--violet)}
+  code{font-family:ui-monospace,monospace;font-size:12px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Pay<span>Flow</span></div>
+  <div class="ai-badge">SPRING AI</div>
+  <div style="color:var(--muted);font-size:13px">Architecture &amp; Flow Reference</div>
+  <nav>
+    <a href="#overview" class="active" onclick="setActive(this)">Overview</a>
+    <a href="#ai-arch" onclick="setActive(this)">AI Architecture</a>
+    <a href="#tools" onclick="setActive(this)">Tools</a>
+    <a href="#chat-flow" onclick="setActive(this)">Chat Flow</a>
+    <a href="#search-flow" onclick="setActive(this)">Search Flow</a>
+    <a href="#build" onclick="setActive(this)">Build &amp; Deploy</a>
+    <a href="#components" onclick="setActive(this)">Components</a>
+  </nav>
+</header>
+
+<div id="dp">
+  <button class="close-btn" onclick="closePanel()">✕ Close</button>
+  <div id="dp-content"></div>
+</div>
+
+<main>
+
+<h1>PayFlow AI — Architecture</h1>
+<p class="subtitle">Spring AI 1.0 demo. Chat analyst with tool calling on <code>gpt-oss:20b</code> + semantic transaction search on <code>nomic-embed-text-v2-moe</code>. Single-jar CF deployment. Click any component for details.</p>
+
+<!-- ─── Overview ─────────────────────────────────────────────────── -->
+<section id="overview">
+  <h2>System Overview</h2>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:32px;overflow-x:auto">
+
+    <div style="display:grid;grid-template-columns:180px 60px 1fr 60px 200px;gap:0;align-items:center;min-width:800px">
+
+      <!-- Browser -->
+      <div class="node browser" onclick="showDetail('browser')" style="grid-column:1">
+        <div class="n-icon">🌐</div>
+        <div class="n-title">Browser</div>
+        <div class="n-sub">React SPA<br/>Chat tab + Search tab</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;grid-column:2">
+        <div style="font-size:11px;color:var(--blue);text-align:center">HTTPS →</div>
+        <div style="font-size:11px;color:var(--muted);text-align:center">← JSON</div>
+      </div>
+
+      <!-- Spring Boot app -->
+      <div class="node spring" onclick="showDetail('spring-boot')" style="grid-column:3">
+        <div class="n-icon">🍃</div>
+        <div class="n-title">payflow-ai (Spring Boot 3.5 · JDK 21)</div>
+        <div class="n-sub" style="margin-top:8px;display:flex;justify-content:center;gap:24px;text-align:left">
+          <div>
+            <div style="color:var(--text);font-size:12px;font-weight:600;margin-bottom:4px">POST /api/chat</div>
+            <div style="color:var(--muted)">ChatController</div>
+            <div style="color:var(--muted)">ChatClient + Memory</div>
+            <div style="color:var(--muted)">PaymentDataTools</div>
+          </div>
+          <div>
+            <div style="color:var(--text);font-size:12px;font-weight:600;margin-bottom:4px">GET /api/search</div>
+            <div style="color:var(--muted)">SearchController</div>
+            <div style="color:var(--muted)">SemanticSearchService</div>
+            <div style="color:var(--muted)">SimpleVectorStore</div>
+          </div>
+          <div>
+            <div style="color:var(--text);font-size:12px;font-weight:600;margin-bottom:4px">GET /</div>
+            <div style="color:var(--muted)">React SPA</div>
+            <div style="color:var(--muted)">served from</div>
+            <div style="color:var(--muted)">classpath:/static/</div>
+          </div>
+        </div>
+        <div class="n-badge">PORT (dynamic)</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;grid-column:4">
+        <div style="font-size:11px;color:var(--violet);text-align:center">HTTP →</div>
+        <div style="font-size:11px;color:var(--muted);text-align:center">← SSE</div>
+      </div>
+
+      <!-- AI Endpoint -->
+      <div class="node ai-model" onclick="showDetail('ai-endpoint')" style="grid-column:5">
+        <div class="n-icon">🤖</div>
+        <div class="n-title">Tanzu Platform GenAI</div>
+        <div class="n-sub">OpenAI-compatible<br/><span style="font-family:monospace">gpt-oss:20b</span><br/><span style="font-family:monospace">nomic-embed-text-v2-moe</span></div>
+      </div>
+
+    </div>
+
+    <!-- No external DB note -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;font-size:12px">
+        <div style="color:var(--green);font-weight:600">SimpleVectorStore</div>
+        <div style="color:var(--muted)">In-memory · seeded at startup<br/>No external DB</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;font-size:12px">
+        <div style="color:var(--violet);font-weight:600">InMemoryChatMemory</div>
+        <div style="color:var(--muted)">Per-session conversation history<br/>Keyed by sessionId</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;font-size:12px">
+        <div style="color:var(--amber);font-weight:600">No Persistence Layer</div>
+        <div style="color:var(--muted)">No PostgreSQL · No RabbitMQ<br/>No Redis · Single jar</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;font-size:12px;color:var(--muted)">
+      <span>Click any component for details →</span>
+      <span style="color:var(--blue)">— HTTPS / REST</span>
+      <span style="color:var(--violet)">— Spring AI (OpenAI-compatible)</span>
+      <span style="color:var(--green)">— In-memory storage</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── AI Architecture ────────────────────────────────────────────── -->
+<section id="ai-arch">
+  <h2>Spring AI Architecture</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+    <!-- Chat side -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span style="font-size:18px">💬</span>
+        <div>
+          <div style="font-weight:600;font-size:14px">Chat Analyst</div>
+          <div style="font-size:11px;color:var(--muted);font-family:monospace">POST /api/chat</div>
+        </div>
+      </div>
+
+      <div class="flow-box" style="padding:16px">
+        <div class="flow-step" onclick="showDetail('chat-client')" style="padding:10px">
+          <div class="step-num tag-violet" style="width:24px;height:24px;font-size:10px">1</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">ChatClient</div>
+            <div class="step-desc" style="font-size:12px">Built in AiConfig with system prompt, tools, and memory advisor.</div>
+          </div>
+        </div>
+        <div class="connector" style="height:16px"></div>
+        <div class="flow-step" onclick="showDetail('memory-advisor')" style="padding:10px">
+          <div class="step-num tag-violet" style="width:24px;height:24px;font-size:10px">2</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">MessageChatMemoryAdvisor</div>
+            <div class="step-desc" style="font-size:12px">Prepends conversation history per sessionId before every LLM call.</div>
+          </div>
+        </div>
+        <div class="connector" style="height:16px"></div>
+        <div class="flow-step" onclick="showDetail('tool-calling')" style="padding:10px">
+          <div class="step-num tag-violet" style="width:24px;height:24px;font-size:10px">3</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">Tool Calling</div>
+            <div class="step-desc" style="font-size:12px">LLM decides which <code>@Tool</code> methods to invoke. Spring AI executes them and feeds results back.</div>
+          </div>
+        </div>
+        <div class="connector" style="height:16px"></div>
+        <div class="flow-step" onclick="showDetail('gpt-oss')" style="padding:10px">
+          <div class="step-num tag-violet" style="width:24px;height:24px;font-size:10px">4</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">gpt-oss:20b</div>
+            <div class="step-desc" style="font-size:12px">OpenAI-compatible endpoint. Tanzu Platform GenAI tile. Configured via AI_BASE_URL.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search side -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span style="font-size:18px">🔍</span>
+        <div>
+          <div style="font-weight:600;font-size:14px">Semantic Search</div>
+          <div style="font-size:11px;color:var(--muted);font-family:monospace">GET /api/search?q=&amp;topK=</div>
+        </div>
+      </div>
+
+      <div class="flow-box" style="padding:16px">
+        <div class="flow-step" onclick="showDetail('embed-query')" style="padding:10px">
+          <div class="step-num tag-blue" style="width:24px;height:24px;font-size:10px">1</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">Embed the query</div>
+            <div class="step-desc" style="font-size:12px">EmbeddingModel sends query text to <code>nomic-embed-text-v2-moe</code>, gets back a float[] vector.</div>
+          </div>
+        </div>
+        <div class="connector" style="height:16px"></div>
+        <div class="flow-step" onclick="showDetail('vector-store')" style="padding:10px">
+          <div class="step-num tag-blue" style="width:24px;height:24px;font-size:10px">2</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">SimpleVectorStore</div>
+            <div class="step-desc" style="font-size:12px">Cosine similarity search over 20 in-memory transaction documents seeded at startup.</div>
+          </div>
+        </div>
+        <div class="connector" style="height:16px"></div>
+        <div class="flow-step" onclick="showDetail('seed-docs')" style="padding:10px">
+          <div class="step-num tag-blue" style="width:24px;height:24px;font-size:10px">3</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">Return ranked results</div>
+            <div class="step-desc" style="font-size:12px">Top-K documents returned with similarity score, txnId, risk score, and status.</div>
+          </div>
+        </div>
+        <div class="connector" style="height:16px"></div>
+        <div class="flow-step" onclick="showDetail('nomic-embed')" style="padding:10px">
+          <div class="step-num tag-blue" style="width:24px;height:24px;font-size:10px">↑</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">nomic-embed-text-v2-moe</div>
+            <div class="step-desc" style="font-size:12px">Embedding model — also used at startup to embed the 20 seed documents into the vector store.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─── Tools ─────────────────────────────────────────────────────── -->
+<section id="tools">
+  <h2>LLM-Callable Tools — PaymentDataTools</h2>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:20px">
+    Six <code>@Tool</code>-annotated methods registered with the <code>ChatClient</code>.
+    The LLM decides which to call based on the user's question — Spring AI executes them and feeds results back automatically.
+    All return mock data suitable for sales demos.
+  </p>
+  <div class="tools-grid">
+
+    <div class="tool-card" onclick="showDetail('tool-recent-txns')">
+      <div class="tool-name">getRecentTransactions</div>
+      <div class="tool-sig">(int limit) → List&lt;Map&gt;</div>
+      <div class="tool-desc">Returns the most recent payment transactions with sender, receiver, amount, status, and risk score. Use limit to control how many to show.</div>
+    </div>
+
+    <div class="tool-card" onclick="showDetail('tool-stats')">
+      <div class="tool-name">getPaymentStatistics</div>
+      <div class="tool-sig">() → Map</div>
+      <div class="tool-desc">24-hour KPI summary: total transactions, total volume, flagged count, fraud rate, average amount, and processing time.</div>
+    </div>
+
+    <div class="tool-card" onclick="showDetail('tool-alerts')">
+      <div class="tool-name">getFraudAlerts</div>
+      <div class="tool-sig">(int limit) → List&lt;Map&gt;</div>
+      <div class="tool-desc">Current fraud alerts with rule name, amount, risk score, sender account, and triggered time. Sorted by risk descending.</div>
+    </div>
+
+    <div class="tool-card" onclick="showDetail('tool-rules')">
+      <div class="tool-name">explainFraudDetectionRules</div>
+      <div class="tool-sig">() → String</div>
+      <div class="tool-desc">Documents the four fraud rules: HIGH_AMOUNT (>£50k), RAPID_SUCCESSION (>3 txns/60s), ROUND_NUMBER (exact £1k+ multiples), HIGH_RISK_ACCOUNT (flagged account history).</div>
+    </div>
+
+    <div class="tool-card" onclick="showDetail('tool-balances')">
+      <div class="tool-name">getAccountBalances</div>
+      <div class="tool-sig">() → List&lt;Map&gt;</div>
+      <div class="tool-desc">Current balances for all six fictional demo banks: Albion, Meridian, Crestfield, Harrington, Caledonian, Vantage.</div>
+    </div>
+
+    <div class="tool-card" onclick="showDetail('tool-narrative')">
+      <div class="tool-name">generateFraudNarrative</div>
+      <div class="tool-sig">(String txnRef) → String</div>
+      <div class="tool-desc">Generates a detailed investigation narrative for a transaction reference — timeline, risk factors, triggered rules, and recommended action.</div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:20px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Tool annotation example — PaymentDataTools.java</div>
+    <div class="code-block"><span class="c">// Spring AI 1.0 — method-level @Tool annotation</span>
+<span class="k">@Tool</span>(<span class="s">"Get the N most recent payment transactions with risk scores"</span>)
+<span class="k">public</span> List&lt;Map&lt;String, Object&gt;&gt; <span class="v">getRecentTransactions</span>(<span class="k">int</span> limit) {
+    <span class="c">// returns mock data — no DB required</span>
+    <span class="k">return</span> List.of(
+        Map.of(<span class="s">"txnId"</span>, <span class="s">"PF-20261007"</span>, <span class="s">"amount"</span>, <span class="s">"£125,000.00"</span>,
+               <span class="s">"sender"</span>, <span class="s">"Vantage Bank PLC"</span>, <span class="s">"riskScore"</span>, 82, ...),
+        ...
+    ).stream().limit(limit).toList();
+}</div>
+  </div>
+</section>
+
+<!-- ─── Chat Flow ─────────────────────────────────────────────────── -->
+<section id="chat-flow">
+  <h2>Chat Request — Full Lifecycle</h2>
+  <div class="flow-box">
+
+    <div class="flow-step" onclick="showDetail('cf-user-msg')">
+      <div class="step-num tag-blue">1</div>
+      <div class="step-body">
+        <div class="step-title">User sends message</div>
+        <div class="step-desc">React calls <code>POST /api/chat</code> with <code>{ message, sessionId }</code>. If no sessionId is provided, the server generates one (UUID) and returns it in the response for the browser to reuse in subsequent messages.</div>
+        <div class="tags"><span class="tag tag-blue">REST JSON</span><span class="tag tag-violet">sessionId</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="flow-step" onclick="showDetail('cf-memory')">
+      <div class="step-num tag-violet">2</div>
+      <div class="step-body">
+        <div class="step-title">Conversation history prepended</div>
+        <div class="step-desc"><code>MessageChatMemoryAdvisor</code> looks up the sessionId in <code>InMemoryChatMemory</code> and prepends the previous N messages before the prompt is sent to the LLM. Each session maintains independent history.</div>
+        <div class="tags"><span class="tag tag-violet">InMemoryChatMemory</span><span class="tag tag-violet">MessageChatMemoryAdvisor</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="flow-step" onclick="showDetail('cf-llm-call')">
+      <div class="step-num tag-violet">3</div>
+      <div class="step-body">
+        <div class="step-title">LLM call #1 — gpt-oss:20b decides to use tools</div>
+        <div class="step-desc">Spring AI sends the prompt (with history and system message) to <code>gpt-oss:20b</code>. The LLM's tool-calling response includes one or more tool invocations. Spring AI parses the response and calls the appropriate <code>@Tool</code> methods automatically.</div>
+        <div class="tags"><span class="tag tag-violet">gpt-oss:20b</span><span class="tag tag-violet">tool_calls JSON</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="flow-step" onclick="showDetail('cf-tool-exec')">
+      <div class="step-num tag-green">4</div>
+      <div class="step-body">
+        <div class="step-title">@Tool methods executed</div>
+        <div class="step-desc">Spring AI reflectively calls the matching method(s) on <code>PaymentDataTools</code> (e.g. <code>getRecentTransactions(5)</code>, <code>getFraudAlerts(3)</code>). Results are serialised to JSON strings and added to the message history as tool result messages.</div>
+        <div class="tags"><span class="tag tag-green">Java reflection</span><span class="tag tag-green">PaymentDataTools</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="flow-step" onclick="showDetail('cf-llm-call2')">
+      <div class="step-num tag-violet">5</div>
+      <div class="step-body">
+        <div class="step-title">LLM call #2 — synthesise the response</div>
+        <div class="step-desc">Spring AI sends another request to <code>gpt-oss:20b</code> with the tool results in context. The LLM synthesises a natural-language answer using the live data. The final string content is returned.</div>
+        <div class="tags"><span class="tag tag-violet">gpt-oss:20b</span><span class="tag tag-green">Data-grounded response</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="flow-step" onclick="showDetail('cf-response')">
+      <div class="step-num tag-green" style="background:#3fb95018;border:1px solid #3fb95040">✓</div>
+      <div class="step-body">
+        <div class="step-title">Response returned</div>
+        <div class="step-desc"><code>{ response: "...", sessionId: "..." }</code> returned to the browser. React appends the assistant message to the chat history. The sessionId is stored in component state for the next request.</div>
+        <div class="tags"><span class="tag tag-green">JSON response</span><span class="tag tag-blue">React state update</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─── Search Flow ───────────────────────────────────────────────── -->
+<section id="search-flow">
+  <h2>Semantic Search — Embedding Flow</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+    <div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Startup — seed the vector store</div>
+      <div class="flow-box" style="padding:20px">
+        <div class="flow-step" onclick="showDetail('ss-startup')" style="padding:8px">
+          <div class="step-num tag-blue" style="width:24px;height:24px;font-size:10px">S</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">@PostConstruct — 20 documents</div>
+            <div class="step-desc" style="font-size:12px"><code>SemanticSearchService.seedVectorStore()</code> creates 20 <code>Document</code> objects covering key fraud patterns and transaction types.</div>
+          </div>
+        </div>
+        <div class="connector" style="height:12px"></div>
+        <div class="flow-step" onclick="showDetail('ss-embed-docs')" style="padding:8px">
+          <div class="step-num tag-blue" style="width:24px;height:24px;font-size:10px">↓</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">EmbeddingModel embeds each doc</div>
+            <div class="step-desc" style="font-size:12px"><code>vectorStore.add(docs)</code> calls <code>nomic-embed-text-v2-moe</code> for each document, stores float[] vectors in memory.</div>
+          </div>
+        </div>
+        <div class="connector" style="height:12px"></div>
+        <div class="flow-step" onclick="showDetail('ss-ready')" style="padding:8px">
+          <div class="step-num tag-green" style="width:24px;height:24px;font-size:10px;background:#3fb95018;border:1px solid #3fb95040">✓</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">Store ready</div>
+            <div class="step-desc" style="font-size:12px">20 vectors in memory. App serves search requests immediately — no warmup latency after startup.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Runtime — handle a search query</div>
+      <div class="flow-box" style="padding:20px">
+        <div class="flow-step" onclick="showDetail('ss-query')" style="padding:8px">
+          <div class="step-num tag-violet" style="width:24px;height:24px;font-size:10px">1</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">GET /api/search?q=...</div>
+            <div class="step-desc" style="font-size:12px">Browser sends query string and optional topK (default 5). <code>SearchController</code> delegates to <code>SemanticSearchService.search()</code>.</div>
+          </div>
+        </div>
+        <div class="connector" style="height:12px"></div>
+        <div class="flow-step" onclick="showDetail('ss-embed-query')" style="padding:8px">
+          <div class="step-num tag-violet" style="width:24px;height:24px;font-size:10px">2</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">Query embedded</div>
+            <div class="step-desc" style="font-size:12px"><code>SimpleVectorStore.similaritySearch()</code> calls <code>nomic-embed-text-v2-moe</code> to embed the query into the same vector space as the documents.</div>
+          </div>
+        </div>
+        <div class="connector" style="height:12px"></div>
+        <div class="flow-step" onclick="showDetail('ss-cosine')" style="padding:8px">
+          <div class="step-num tag-violet" style="width:24px;height:24px;font-size:10px">3</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">Cosine similarity + rank</div>
+            <div class="step-desc" style="font-size:12px">SimpleVectorStore computes dot-product similarity against all 20 stored vectors, returns top-K documents with their scores.</div>
+          </div>
+        </div>
+        <div class="connector" style="height:12px"></div>
+        <div class="flow-step" onclick="showDetail('ss-results')" style="padding:8px">
+          <div class="step-num tag-green" style="width:24px;height:24px;font-size:10px;background:#3fb95018;border:1px solid #3fb95040">✓</div>
+          <div class="step-body">
+            <div class="step-title" style="font-size:13px">SearchResult[] returned</div>
+            <div class="step-desc" style="font-size:12px">Mapped to <code>{ txnId, description, status, riskScore, similarity }</code>. React renders similarity score bars and risk/status badges.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">20 seed document categories</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <span class="tag tag-red">Corporate treasury £2.4M</span>
+      <span class="tag tag-red">Rapid succession velocity fraud</span>
+      <span class="tag tag-amber">Round-number suspicious</span>
+      <span class="tag tag-blue">Retail salary payment</span>
+      <span class="tag tag-blue">Cross-border SWIFT</span>
+      <span class="tag tag-red">Late-night large payment</span>
+      <span class="tag tag-red">Duplicate payment pattern</span>
+      <span class="tag tag-blue">Mortgage drawdown</span>
+      <span class="tag tag-red">Split-payment structuring</span>
+      <span class="tag tag-red">Sanctioned entity payment</span>
+      <span class="tag tag-blue">…and 10 more</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Build & Deploy ────────────────────────────────────────────── -->
+<section id="build">
+  <h2>Build &amp; Deployment</h2>
+  <div class="flow-box">
+
+    <div class="flow-step" onclick="showDetail('step-fe')">
+      <div class="step-num tag-blue">1</div>
+      <div class="step-body">
+        <div class="step-title">Build React frontend</div>
+        <div class="step-desc"><code>npm ci &amp;&amp; npm run build</code> inside <code>frontend/</code>. Vite outputs the bundle to <code>backend/src/main/resources/static/</code> (configured via <code>build.outDir</code> in vite.config.js). Spring Boot serves it at <code>/</code>.</div>
+        <div class="tags"><span class="tag tag-blue">Vite 5</span><span class="tag tag-blue">React 18</span><span class="tag tag-blue">Tailwind CSS 3</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="flow-step" onclick="showDetail('step-mvn')">
+      <div class="step-num tag-green">2</div>
+      <div class="step-body">
+        <div class="step-title">Package Spring Boot jar</div>
+        <div class="step-desc"><code>mvn clean package -DskipTests</code> inside <code>backend/</code>. Maven bundles Java classes, Spring AI dependencies, and the React static files into a single fat jar: <code>backend/target/payflow-ai.jar</code>.</div>
+        <div class="tags"><span class="tag tag-green">Spring Boot 3.5</span><span class="tag tag-green">Spring AI 1.0</span><span class="tag tag-green">JDK 21</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="flow-step" onclick="showDetail('step-env')">
+      <div class="step-num tag-amber">3</div>
+      <div class="step-body">
+        <div class="step-title">Set AI credentials</div>
+        <div class="step-desc"><code>cf set-env payflow-ai AI_BASE_URL &lt;endpoint&gt;</code> and <code>cf set-env payflow-ai AI_API_KEY &lt;key&gt;</code>. Never commit the API key to <code>manifest.yml</code>. Models are already set in the manifest (<code>gpt-oss:20b</code>, <code>nomic-embed-text-v2-moe</code>).</div>
+        <div class="tags"><span class="tag tag-amber">cf set-env</span><span class="tag tag-amber">No secrets in git</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="flow-step" onclick="showDetail('step-push')">
+      <div class="step-num tag-orange">4</div>
+      <div class="step-body">
+        <div class="step-title">cf push</div>
+        <div class="step-desc">CF CLI reads <code>manifest.yml</code>, uploads <code>payflow-ai.jar</code>, stages with <code>java_buildpack_offline</code> (JDK 21), assigns <code>PORT</code>, and starts the app. No service bindings needed — no external DB.</div>
+        <div class="tags"><span class="tag tag-orange">java_buildpack_offline</span><span class="tag tag-orange">JDK 21</span><span class="tag tag-orange">1G memory</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="flow-step" onclick="showDetail('step-seed')">
+      <div class="step-num tag-violet">5</div>
+      <div class="step-body">
+        <div class="step-title">Startup — vector store seeded</div>
+        <div class="step-desc">On first request after startup, <code>SemanticSearchService@PostConstruct</code> runs: 20 documents are embedded via <code>nomic-embed-text-v2-moe</code> and loaded into the in-memory <code>SimpleVectorStore</code>. Takes ~2–5s depending on embedding latency.</div>
+        <div class="tags"><span class="tag tag-violet">@PostConstruct</span><span class="tag tag-violet">EmbeddingModel</span><span class="tag tag-violet">SimpleVectorStore</span></div>
+      </div>
+    </div>
+    <div class="connector"></div>
+
+    <div class="flow-step" onclick="showDetail('step-live')">
+      <div class="step-num tag-green" style="background:#3fb95018;border:1px solid #3fb95040">✓</div>
+      <div class="step-body">
+        <div class="step-title">App is live</div>
+        <div class="step-desc">React SPA at <code>/</code>. Chat at <code>POST /api/chat</code>. Search at <code>GET /api/search</code>. Health at <code>/actuator/health</code>. No CORS — frontend and backend share one CF route.</div>
+        <div class="tags"><span class="tag tag-green">Single route</span><span class="tag tag-green">No CORS</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:20px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">manifest.yml</div>
+    <div class="code-block"><span class="c">---</span>
+<span class="k">applications</span>:
+  - <span class="k">name</span>: <span class="s">payflow-ai</span>
+    <span class="k">buildpacks</span>: [<span class="s">java_buildpack_offline</span>]
+    <span class="k">path</span>: <span class="s">backend/target/payflow-ai.jar</span>
+    <span class="k">memory</span>: <span class="s">1G</span>
+    <span class="k">health-check-type</span>: <span class="s">http</span>
+    <span class="k">health-check-http-endpoint</span>: <span class="s">/actuator/health</span>
+    <span class="k">env</span>:
+      <span class="k">JBP_CONFIG_OPEN_JDK_JRE</span>: <span class="s">'{ jre: { version: 21.+ } }'</span>
+      <span class="k">AI_BASE_URL</span>:         <span class="s">https://replace-me.genai.example.com/v1</span>
+      <span class="k">AI_CHAT_MODEL</span>:       <span class="s">gpt-oss:20b</span>
+      <span class="k">AI_EMBEDDING_MODEL</span>:  <span class="s">nomic-embed-text-v2-moe</span>
+      <span class="c">      # AI_API_KEY set via cf set-env — never commit</span></div>
+  </div>
+</section>
+
+<!-- ─── Components ────────────────────────────────────────────────── -->
+<section id="components">
+  <h2>Key Source Files</h2>
+  <div class="card-grid">
+
+    <div class="card" onclick="showDetail('comp-aiconfig')">
+      <div class="card-header"><div class="card-icon">⚙️</div><div><div class="card-name">AiConfig.java</div><div class="card-file">config/AiConfig.java</div></div></div>
+      <div class="card-desc">Wires the <code>ChatClient</code> with system prompt, <code>MessageChatMemoryAdvisor</code>, and <code>PaymentDataTools</code>. Also creates the <code>SimpleVectorStore</code> bean backed by the injected <code>EmbeddingModel</code>.</div>
+      <span class="card-layer tag-violet">Spring AI config</span>
+    </div>
+
+    <div class="card" onclick="showDetail('comp-tools')">
+      <div class="card-header"><div class="card-icon">🔧</div><div><div class="card-name">PaymentDataTools.java</div><div class="card-file">tools/PaymentDataTools.java</div></div></div>
+      <div class="card-desc">Six <code>@Tool</code>-annotated methods returning mock payment data. Registered as a Spring bean, passed to <code>ChatClient.defaultTools()</code>. The LLM invokes these autonomously during a conversation turn.</div>
+      <span class="card-layer tag-violet">@Tool methods</span>
+    </div>
+
+    <div class="card" onclick="showDetail('comp-search')">
+      <div class="card-header"><div class="card-icon">🔍</div><div><div class="card-name">SemanticSearchService.java</div><div class="card-file">service/SemanticSearchService.java</div></div></div>
+      <div class="card-desc">Seeds the vector store with 20 transaction documents on startup (<code>@PostConstruct</code>). Exposes <code>search(query, topK)</code> using <code>SearchRequest.builder()</code> and maps results to <code>SearchResult</code> records.</div>
+      <span class="card-layer tag-blue">Embeddings + VectorStore</span>
+    </div>
+
+    <div class="card" onclick="showDetail('comp-chat-ctrl')">
+      <div class="card-header"><div class="card-icon">💬</div><div><div class="card-name">ChatController.java</div><div class="card-file">controller/ChatController.java</div></div></div>
+      <div class="card-desc"><code>POST /api/chat</code> — accepts <code>{ message, sessionId }</code>, generates a UUID sessionId if absent, calls <code>ChatClient</code> with the session memory key, returns <code>{ response, sessionId }</code>.</div>
+      <span class="card-layer tag-green">REST controller</span>
+    </div>
+
+    <div class="card" onclick="showDetail('comp-search-ctrl')">
+      <div class="card-header"><div class="card-icon">📡</div><div><div class="card-name">SearchController.java</div><div class="card-file">controller/SearchController.java</div></div></div>
+      <div class="card-desc"><code>GET /api/search?q=&amp;topK=</code> — delegates to <code>SemanticSearchService.search()</code>, returns <code>List&lt;SearchResult&gt;</code> as JSON with txnId, description, riskScore, status, similarity.</div>
+      <span class="card-layer tag-green">REST controller</span>
+    </div>
+
+    <div class="card" onclick="showDetail('comp-app-yml')">
+      <div class="card-header"><div class="card-icon">📄</div><div><div class="card-name">application.yml</div><div class="card-file">resources/application.yml</div></div></div>
+      <div class="card-desc">Configures the OpenAI-compatible client: <code>spring.ai.openai.base-url</code>, API key, chat model, embedding model — all via environment variable overrides. Single config block serves both local dev and CF.</div>
+      <span class="card-layer tag-amber">Config</span>
+    </div>
+
+    <div class="card" onclick="showDetail('comp-ui')">
+      <div class="card-header"><div class="card-icon">🎨</div><div><div class="card-name">App.jsx</div><div class="card-file">frontend/src/App.jsx</div></div></div>
+      <div class="card-desc">Full React UI. Dark theme. Two-tab layout: Chat Analyst (message history, suggested questions, session management) and Semantic Search (query input, example searches, results with similarity bars and risk badges).</div>
+      <span class="card-layer tag-blue">React + Tailwind</span>
+    </div>
+
+    <div class="card" onclick="showDetail('comp-vite')">
+      <div class="card-header"><div class="card-icon">⚡</div><div><div class="card-name">vite.config.js</div><div class="card-file">frontend/vite.config.js</div></div></div>
+      <div class="card-desc"><code>build.outDir</code> points to <code>../backend/src/main/resources/static</code> — Vite outputs the production bundle directly into Spring Boot's classpath, embedding it in the jar at package time.</div>
+      <span class="card-layer tag-blue">Build config</span>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<script>
+const DETAILS = {
+  browser: {title:'Browser',tag:'React SPA',tagClass:'tag-blue',desc:'Single-page React application embedded in the Spring Boot jar and served at /. Two tabs: Chat Analyst (conversational AI powered by gpt-oss:20b) and Semantic Search (vector similarity powered by nomic-embed-text-v2-moe). Calls /api/chat and /api/search as relative same-origin URLs — no CORS required.',props:[['Chat tab','POST /api/chat with message + sessionId'],['Search tab','GET /api/search?q=&topK='],['Session','UUID sessionId maintained in React state'],['Theme','Dark — gray-950 background, violet accents'],['Served by','Spring Boot ResourceHttpRequestHandler at /']]},
+  'spring-boot': {title:'Spring Boot App',tag:'CF App',tagClass:'tag-green',desc:'The entire application runs as a single Spring Boot process — REST API, Spring AI client, in-memory vector store, and embedded React frontend. No external databases or message queues. The only runtime dependency is the Tanzu Platform AI endpoint.',props:[['Framework','Spring Boot 3.5 / Spring AI 1.0.0'],['JDK','21 (java_buildpack_offline)'],['Memory','1G (CF) — no JVM heap pressure from large data'],['Port','${PORT:8080} — CF assigns dynamically'],['Health check','GET /actuator/health'],['Frontend','Served from classpath:/static/ (jar-embedded)']]},
+  'ai-endpoint': {title:'Tanzu Platform GenAI',tag:'AI Service',tagClass:'tag-violet',desc:'The Tanzu Platform GenAI tile exposes an OpenAI-compatible HTTP API. Spring AI\'s OpenAI client connects to it using the configured base URL and API key. Both models — chat and embedding — are served from the same endpoint.',props:[['Protocol','OpenAI-compatible REST API'],['Chat model','gpt-oss:20b — tool calling, conversation'],['Embedding model','nomic-embed-text-v2-moe — vector embeddings'],['Config','AI_BASE_URL env var — same URL for both models'],['Auth','AI_API_KEY — set via cf set-env, not in manifest']]},
+  'chat-client': {title:'ChatClient',tag:'Spring AI',tagClass:'tag-violet',desc:'The ChatClient is built in AiConfig with three defaults: system prompt (PayFlow Intelligence persona), MessageChatMemoryAdvisor (injects session history), and PaymentDataTools (registers all 6 @Tool methods). Each call to .prompt().user(...).call().content() may trigger one or more tool calls internally.',props:[['Bean','ChatClient (Spring AI 1.0)'],['System prompt','PayFlow Intelligence persona + risk scale'],['Memory','MessageChatMemoryAdvisor + InMemoryChatMemory'],['Tools','PaymentDataTools — 6 @Tool methods'],['Model','gpt-oss:20b via spring.ai.openai.*']]},
+  'memory-advisor': {title:'MessageChatMemoryAdvisor',tag:'Spring AI',tagClass:'tag-violet',desc:'An advisor that intercepts every ChatClient call and prepends the conversation history for the given session. History is stored in InMemoryChatMemory keyed by sessionId. Each browser session gets an isolated memory scope — opening a new tab starts a fresh conversation.',props:[['Type','MessageChatMemoryAdvisor (Spring AI built-in)'],['Storage','InMemoryChatMemory (in-process, per session)'],['Key','AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY'],['Scope','Per sessionId — independent conversation threads'],['Persistence','Lost on app restart (stateless demo)']]},
+  'tool-calling': {title:'Tool Calling',tag:'Spring AI',tagClass:'tag-violet',desc:'Spring AI serialises the @Tool method signatures as OpenAI function definitions and sends them in the LLM request. When the model decides to call a tool, Spring AI parses the tool_calls response, invokes the Java method via reflection, serialises the result, and continues the conversation.',props:[['Annotation','@Tool (org.springframework.ai.tool.annotation)'],['Registration','ChatClient.defaultTools(paymentDataTools)'],['Execution','Spring AI reflection — transparent to application code'],['Loop','Automatic: call LLM → execute tools → call LLM again'],['Max rounds','Bounded by Spring AI defaults (configurable)']]},
+  'gpt-oss': {title:'gpt-oss:20b',tag:'LLM',tagClass:'tag-violet',desc:'The primary chat and reasoning model on Tanzu Platform. 20B parameter open-source model exposed via an OpenAI-compatible API. Used for conversational understanding, tool call decisions, and final answer synthesis. Configured via spring.ai.openai.chat.options.model.',props:[['Model','gpt-oss:20b'],['Protocol','OpenAI Chat Completions API'],['Temperature','0.5 (balanced creativity / precision)'],['Max tokens','1024 per response'],['Role','Chat + tool calling']]},
+  'embed-query': {title:'Embed the Query',tag:'Embeddings',tagClass:'tag-blue',desc:'When a search request arrives, SemanticSearchService calls vectorStore.similaritySearch(SearchRequest). SimpleVectorStore internally calls EmbeddingModel.embed(queryText) — an HTTP call to nomic-embed-text-v2-moe — to get a float[] vector for the query text.',props:[['Called by','SimpleVectorStore.similaritySearch()'],['HTTP call','nomic-embed-text-v2-moe /v1/embeddings'],['Result','float[] — same dimensional space as stored docs'],['Latency','~100–300ms depending on endpoint']]},
+  'vector-store': {title:'SimpleVectorStore',tag:'Spring AI',tagClass:'tag-blue',desc:'Spring AI\'s built-in in-memory vector store. Stores Document objects with their float[] embeddings. Similarity search computes cosine similarity between the query vector and all stored vectors, returning the top-K matches above a threshold.',props:[['Type','SimpleVectorStore (Spring AI built-in)'],['Storage','Java heap — no external DB'],['Algorithm','Cosine similarity (dot product on normalised vectors)'],['Capacity','20 documents (seeded at startup)'],['Thread safety','Yes — Spring-managed singleton']]},
+  'seed-docs': {title:'Seed Documents',tag:'Startup',tagClass:'tag-blue',desc:'20 synthetic transaction Document objects covering a range of fraud patterns and legitimate payment types. Each document has descriptive text metadata (txnId, status, riskScore). The text is what gets embedded — the metadata is returned with results.',props:[['Count','20 documents'],['Fraud patterns','Rapid succession, round-number, late-night, structuring, sanctioned entity'],['Legit patterns','Corporate treasury, salary, mortgage, cross-border, retail'],['Embedding','nomic-embed-text-v2-moe at startup via vectorStore.add()']]},
+  'nomic-embed': {title:'nomic-embed-text-v2-moe',tag:'Embedding Model',tagClass:'tag-blue',desc:'The embedding model on Tanzu Platform. Converts text into float[] vectors in a high-dimensional semantic space. Used at both startup (to embed the 20 seed documents) and at runtime (to embed each search query). Same model for both — ensures compatible vector spaces.',props:[['Model','nomic-embed-text-v2-moe'],['Protocol','OpenAI Embeddings API'],['Usage','Startup: embed 20 docs — Runtime: embed each query'],['Config','spring.ai.openai.embedding.options.model'],['Role','Semantic similarity, not generation']]},
+  'cf-user-msg': {title:'Chat Request',tag:'REST',tagClass:'tag-blue',desc:'React posts to /api/chat with a JSON body. If no sessionId is provided (first message in a session), the controller generates a UUID and returns it. Subsequent requests reuse the same sessionId to maintain conversation continuity.',props:[['Endpoint','POST /api/chat'],['Request','{ message: string, sessionId?: string }'],['Response','{ response: string, sessionId: string }'],['SessionId','UUID — generated server-side on first call']]},
+  'cf-memory': {title:'Conversation Memory',tag:'Spring AI',tagClass:'tag-violet',desc:'MessageChatMemoryAdvisor reads InMemoryChatMemory for the given sessionId and prepends all prior messages (user + assistant) to the prompt before the LLM call. This gives the LLM the conversational context it needs to answer follow-up questions coherently.',props:[['Memory type','InMemoryChatMemory'],['Advisor','MessageChatMemoryAdvisor'],['Key param','CHAT_MEMORY_CONVERSATION_ID_KEY = sessionId'],['Scope','Per session — isolated between tabs/users'],['Reset','New session button → new UUID → fresh memory']]},
+  'cf-llm-call': {title:'First LLM Call',tag:'Tool Decision',tagClass:'tag-violet',desc:'Spring AI sends the user message, system prompt, conversation history, and tool definitions to gpt-oss:20b. The model responds with a tool_calls JSON indicating which tools to invoke and with what arguments. Spring AI parses this automatically.',props:[['Prompt parts','System + history + user message + tool schemas'],['Response type','tool_calls JSON (not a text answer yet)'],['Tool schema','Auto-generated from @Tool annotations'],['Model','gpt-oss:20b']]},
+  'cf-tool-exec': {title:'Tool Execution',tag:'Java',tagClass:'tag-green',desc:'Spring AI calls each requested method on PaymentDataTools using Java reflection. Methods return plain Java objects (Lists, Maps, Strings) which Spring AI serialises to JSON and adds as tool result messages. The conversation context now includes live data.',props:[['Mechanism','Java reflection (Spring AI internal)'],['Methods','From PaymentDataTools @Component bean'],['Results','Serialised to JSON tool result messages'],['Transparency','Application code does nothing — Spring AI handles the loop']]},
+  'cf-llm-call2': {title:'Second LLM Call',tag:'Synthesis',tagClass:'tag-violet',desc:'Spring AI sends the updated message history (including tool results) back to gpt-oss:20b. The model synthesises a natural-language answer grounded in the actual tool data — no hallucination of figures because it received real values from the tools.',props:[['Input','Full history + tool results'],['Output','Natural language answer'],['Grounded','Tool results are in context — not hallucinated'],['Model','gpt-oss:20b']]},
+  'cf-response': {title:'Response',tag:'JSON',tagClass:'tag-green',desc:'ChatController returns { response, sessionId } as JSON. React appends the assistant message to the chat display and stores the sessionId for the next request. The response text may contain formatted data — line breaks, £ symbols, and structured lists.',props:[['JSON','{ response: string, sessionId: string }'],['React','Appended to messages array, re-renders chat'],['sessionId','Stored in useState for next request'],['Format','Pre-wrap whitespace — markdown not rendered']]},
+  'ss-startup': {title:'Vector Store Seeding',tag:'@PostConstruct',tagClass:'tag-blue',desc:'SemanticSearchService.seedVectorStore() is annotated @PostConstruct and runs once after the Spring context initialises. It creates 20 Document objects with descriptive text and metadata, then calls vectorStore.add() which triggers the embedding calls.',props:[['Method','seedVectorStore()'],['Annotation','@PostConstruct'],['Documents','20 synthetic transaction documents'],['Timing','Once at startup — ~2–5s for 20 embedding calls']]},
+  'ss-embed-docs': {title:'Embedding Documents',tag:'EmbeddingModel',tagClass:'tag-blue',desc:'vectorStore.add(docs) batches the 20 documents and calls the EmbeddingModel (nomic-embed-text-v2-moe) to get float[] vectors. Each vector represents the semantic meaning of the document text in high-dimensional space. Stored in the Java heap.',props:[['API call','nomic-embed-text-v2-moe /v1/embeddings'],['Batch','20 documents (may batch internally)'],['Storage','SimpleVectorStore internal list (Java heap)'],['Model','nomic-embed-text-v2-moe']]},
+  'ss-ready': {title:'Vector Store Ready',tag:'Startup',tagClass:'tag-green',desc:'After seeding, the SimpleVectorStore holds 20 float[] vectors. All subsequent search requests are purely in-memory similarity computations (cosine similarity) plus one embedding call for the query — fast and deterministic.',props:[['State','20 vectors in Java heap'],['Ready','Immediately after @PostConstruct completes'],['Search latency','~100–300ms (one embedding call + in-memory scan)']]},
+  'ss-query': {title:'Search Request',tag:'REST',tagClass:'tag-violet',desc:'Browser sends GET /api/search?q=suspicious+large+payment&topK=6. SearchController calls SemanticSearchService.search(q, topK). The topK parameter defaults to 5 if not provided.',props:[['Endpoint','GET /api/search'],['Params','q (query text), topK (default 5, max 10)'],['Response','List<SearchResult> JSON']]},
+  'ss-embed-query': {title:'Query Embedding',tag:'EmbeddingModel',tagClass:'tag-violet',desc:'SimpleVectorStore.similaritySearch() embeds the query string using the same nomic-embed-text-v2-moe model that was used for the seed documents. This ensures query and document vectors exist in the same vector space, making cosine similarity meaningful.',props:[['Model','nomic-embed-text-v2-moe'],['Input','User query string'],['Output','float[] vector'],['Same space','Same model as seed documents — required for valid similarity']]},
+  'ss-cosine': {title:'Cosine Similarity',tag:'Math',tagClass:'tag-violet',desc:'SimpleVectorStore computes dot-product similarity between the query vector and each of the 20 stored document vectors. Results are ranked by score descending. The top-K documents above the similarity threshold are returned.',props:[['Algorithm','Cosine similarity (normalised dot product)'],['Store size','20 documents — O(20) scan, effectively instant'],['Threshold','Default Spring AI threshold (configurable)'],['Returns','Top-K Document objects with .getScore()']]},
+  'ss-results': {title:'Search Results',tag:'Response',tagClass:'tag-green',desc:'SemanticSearchService maps each Document to a SearchResult record extracting txnId, description, status, and riskScore from metadata, plus the similarity score. React renders these as cards with colour-coded risk badges and animated similarity score bars.',props:[['Record','SearchResult(txnId, description, status, riskScore, similarity)'],['Similarity','0.0–1.0 (shown as percentage bar in UI)'],['RiskBadge','0–39 Low / 40–59 Medium / 60–79 High / 80–100 Critical'],['StatusBadge','FLAGGED (red) or COMPLETED (green)']]},
+  'step-fe': {title:'Step 1 — React Build',tag:'Build',tagClass:'tag-blue',desc:'npm ci installs exact locked dependencies, then npm run build runs Vite in production mode. vite.config.js sets build.outDir to ../backend/src/main/resources/static — Vite outputs the bundle directly into the Spring Boot source tree.',props:[['Command','cd frontend && npm ci && npm run build'],['Output dir','backend/src/main/resources/static/'],['Bundle','Minified JS/CSS + index.html'],['Dev port','5174 (with Vite proxy to :8080)']]},
+  'step-mvn': {title:'Step 2 — Maven Package',tag:'Build',tagClass:'tag-green',desc:'mvn clean package -DskipTests builds the Spring Boot fat jar. Maven includes the React assets from src/main/resources/static/ in the jar under BOOT-INF/classes/static/. Spring Boot auto-serves everything under /static at /.',props:[['Command','cd backend && mvn clean package -DskipTests -q'],['Output','backend/target/payflow-ai.jar'],['Includes','Java classes + Spring AI deps + React assets'],['finalName','payflow-ai (matches manifest.yml path:)']]},
+  'step-env': {title:'Step 3 — Set AI Credentials',tag:'CF Env',tagClass:'tag-amber',desc:'AI_API_KEY is intentionally absent from manifest.yml to prevent accidental secret commits. Set it with cf set-env before the first cf push. AI_BASE_URL must be the full path including /v1. The model names in manifest.yml are already correct for Tanzu Platform.',props:[['Command 1','cf set-env payflow-ai AI_BASE_URL https://<endpoint>/v1'],['Command 2','cf set-env payflow-ai AI_API_KEY <key>'],['In manifest','AI_CHAT_MODEL=gpt-oss:20b, AI_EMBEDDING_MODEL=nomic-embed-text-v2-moe'],['Never commit','AI_API_KEY must not appear in manifest.yml or git']]},
+  'step-push': {title:'Step 4 — cf push',tag:'Deploy',tagClass:'tag-orange',desc:'CF CLI reads manifest.yml, uploads the jar, stages with java_buildpack_offline, assigns a dynamic PORT, and starts the app. No service bindings needed — no database, no RabbitMQ, no Redis. Simpler than payflow-demo-cf.',props:[['Reads','manifest.yml'],['Uploads','backend/target/payflow-ai.jar (~150 MB with Spring AI)'],['Buildpack','java_buildpack_offline'],['Services','None — zero CF managed service dependencies'],['Route','payflow-ai.<apps-domain>']]},
+  'step-seed': {title:'Step 5 — Vector Store Seed',tag:'Startup',tagClass:'tag-violet',desc:'On startup, @PostConstruct in SemanticSearchService fires. It calls vectorStore.add(20 documents), which triggers 20 (or batched) embedding calls to nomic-embed-text-v2-moe. This is the only outbound AI call at startup — chat calls happen on-demand.',props:[['Trigger','@PostConstruct (after context refresh)'],['Calls','1 batch embedding call for 20 documents'],['Duration','~2–5s depending on endpoint latency'],['State','SimpleVectorStore populated, app ready to serve search']]},
+  'step-live': {title:'App Live',tag:'Running',tagClass:'tag-green',desc:'Single CF route serves everything. React SPA loads at /, calls /api/chat for chat and /api/search for semantic search. Health endpoint at /actuator/health is checked by the CF Gorouter. No CORS headers needed.',props:[['Route','https://payflow-ai.<apps-domain>'],['SPA','GET / → React app'],['Chat','POST /api/chat'],['Search','GET /api/search?q=&topK='],['Health','GET /actuator/health']]},
+  'comp-aiconfig': {title:'AiConfig.java',tag:'Spring AI',tagClass:'tag-violet',desc:'The central Spring AI configuration. Creates a ChatClient bean with: defaultSystem() sets the PayFlow Intelligence persona and lists the demo banks. defaultAdvisors() installs MessageChatMemoryAdvisor with an InMemoryChatMemory instance. defaultTools() registers PaymentDataTools. Also creates the SimpleVectorStore bean.',props:[['Bean 1','ChatClient — chat + tool calling'],['Bean 2','VectorStore (SimpleVectorStore) — semantic search'],['System prompt','Sets persona, risk scale, bank names'],['Memory','InMemoryChatMemory (in-process)'],['Tools','paymentDataTools @Component bean']]},
+  'comp-tools': {title:'PaymentDataTools.java',tag:'@Tool',tagClass:'tag-violet',desc:'A @Component Spring bean with six @Tool-annotated methods. The @Tool annotation value is the description the LLM uses to decide when to invoke it — write it as a clear imperative sentence. Methods return plain Java objects; Spring AI serialises them to JSON for the LLM.',props:[['Annotation','@Tool (org.springframework.ai.tool.annotation.Tool)'],['Registration','ChatClient.defaultTools(paymentDataTools)'],['Return types','List<Map>, Map, String'],['Mock data','No DB — hardcoded realistic demo data'],['Bank names','Fictional: Albion, Meridian, Crestfield, Harrington, Caledonian, Vantage']]},
+  'comp-search': {title:'SemanticSearchService.java',tag:'Embeddings',tagClass:'tag-blue',desc:'@Service with @Autowired VectorStore and EmbeddingModel. @PostConstruct seeds 20 documents. search() builds a SearchRequest with the query string and topK, calls vectorStore.similaritySearch(), then maps results to SearchResult records using document metadata.',props:[['Seed','@PostConstruct seedVectorStore() — runs once at startup'],['Search','vectorStore.similaritySearch(SearchRequest)'],['SearchRequest','SearchRequest.builder().query(q).topK(k).build()'],['Result record','SearchResult(txnId, description, status, riskScore, similarity)']]},
+  'comp-chat-ctrl': {title:'ChatController.java',tag:'REST',tagClass:'tag-green',desc:'@RestController at /api/chat. Handles POST with ChatRequest record (message, sessionId). Generates UUID sessionId if absent. Uses chatClient.prompt().user(msg).advisors(spec -> spec.param(MEMORY_KEY, sessionId)).call().content() pattern.',props:[['Endpoint','POST /api/chat'],['Request','record ChatRequest(String message, String sessionId)'],['Response','record ChatResponse(String response, String sessionId)'],['Memory key','AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY']]},
+  'comp-search-ctrl': {title:'SearchController.java',tag:'REST',tagClass:'tag-green',desc:'@RestController at /api/search. Simple GET handler: extracts q and topK params, delegates to SemanticSearchService.search(), returns List<SearchResult> as JSON. No auth, no rate limiting — demo app.',props:[['Endpoint','GET /api/search'],['Params','@RequestParam String q, @RequestParam(defaultValue="5") int topK'],['Returns','List<SemanticSearchService.SearchResult>'],['Delegates to','SemanticSearchService.search(q, topK)']]},
+  'comp-app-yml': {title:'application.yml',tag:'Config',tagClass:'tag-amber',desc:'Configures the Spring AI OpenAI client with env var overrides for all AI parameters. The defaults allow local testing with Ollama. On CF, env vars from manifest.yml and cf set-env override these. Port is ${PORT:8080} for CF compatibility.',props:[['base-url','${AI_BASE_URL:http://localhost:11434/v1}'],['api-key','${AI_API_KEY:local}'],['chat model','${AI_CHAT_MODEL:gpt-oss:20b}'],['embed model','${AI_EMBEDDING_MODEL:nomic-embed-text-v2-moe}'],['port','${PORT:8080}']]},
+  'comp-ui': {title:'App.jsx',tag:'React',tagClass:'tag-blue',desc:'Full React UI in a single file. Header with model names. Tabbed layout: ChatTab and SearchTab components. ChatTab manages message history array, session state, loading state, and suggested question chips. SearchTab manages query state, results, and example search chips.',props:[['Tabs','ChatTab + SearchTab'],['Components','Message, RiskBadge, StatusBadge'],['Chat state','messages[], sessionId, loading'],['Search state','query, results[], loading'],['API','fetch /api/chat (POST), /api/search (GET)']]},
+  'comp-vite': {title:'vite.config.js',tag:'Build',tagClass:'tag-blue',desc:'Sets build.outDir to ../backend/src/main/resources/static with emptyOutDir: true — clears and repopulates on every build. Dev server on port 5174 with proxy rules forwarding /api and /actuator to localhost:8080.',props:[['build.outDir','../backend/src/main/resources/static'],['emptyOutDir','true — clean on every build'],['dev port','5174'],['proxy /api','→ http://localhost:8080'],['proxy /actuator','→ http://localhost:8080']]},
+  'tool-recent-txns': {title:'getRecentTransactions',tag:'@Tool',tagClass:'tag-violet',desc:'Returns the N most recent payment transactions with sender, receiver, amount in GBP, status (COMPLETED / FLAGGED), and risk score (0–100). The LLM invokes this when the user asks about recent activity or transaction history.',props:[['Signature','(int limit) → List<Map<String,Object>>'],['Data','Mock transactions — 10 pre-defined entries'],['Fields','txnId, sender, receiver, amount, status, riskScore, timestamp'],['LLM trigger','Queries about recent payments, transaction history']]},
+  'tool-stats': {title:'getPaymentStatistics',tag:'@Tool',tagClass:'tag-violet',desc:'Returns a 24-hour payment summary map: total transactions (247), total volume (£4.8M), flagged count (18), fraud rate (7.3%), average transaction (£19,431), and average processing time (0.8s).',props:[['Signature','() → Map<String,Object>'],['Data','Hardcoded 24h demo statistics'],['Fields','totalTransactions, totalVolume, flaggedCount, fraudRate, avgAmount, avgProcessingTime'],['LLM trigger','Queries about volume, statistics, KPIs, overview']]},
+  'tool-alerts': {title:'getFraudAlerts',tag:'@Tool',tagClass:'tag-violet',desc:'Returns current fraud alerts sorted by risk score descending. Each alert includes the triggered rule name, amount, risk score (0–100), sender account, and trigger timestamp.',props:[['Signature','(int limit) → List<Map<String,Object>>'],['Data','Mock alerts — 6 pre-defined entries, risk 65–92'],['Fields','alertId, rule, amount, riskScore, account, triggeredAt'],['LLM trigger','Queries about fraud, alerts, critical payments, high risk']]},
+  'tool-rules': {title:'explainFraudDetectionRules',tag:'@Tool',tagClass:'tag-violet',desc:'Returns a formatted String documenting all four fraud detection rules with their thresholds and behaviour. Useful for demos explaining the system to an audience.',props:[['Signature','() → String'],['Rules','HIGH_AMOUNT >£50k, RAPID_SUCCESSION >3/60s, ROUND_NUMBER exact £1k+ multiples, HIGH_RISK_ACCOUNT'],['LLM trigger','Questions about how fraud detection works']]},
+  'tool-balances': {title:'getAccountBalances',tag:'@Tool',tagClass:'tag-violet',desc:'Returns current GBP balances for all six fictional demo banks. Albion Bank (£5M), Meridian Bank (£3.5M), Crestfield Group (£2.75M), Harrington (£4.2M), Caledonian Bank (£1.8M), Vantage Bank (£6.1M).',props:[['Signature','() → List<Map<String,Object>>'],['Banks','Albion, Meridian, Crestfield, Harrington, Caledonian, Vantage — all fictional'],['Fields','bankName, accountNumber, balance, currency'],['LLM trigger','Questions about balances, which bank has most money']]},
+  'tool-narrative': {title:'generateFraudNarrative',tag:'@Tool',tagClass:'tag-violet',desc:'Generates a detailed investigation narrative for a given transaction reference. Includes timeline, rule triggers, risk score breakdown, cross-account patterns, and recommended action. Ideal for demonstrating AI-generated compliance documentation.',props:[['Signature','(String transactionReference) → String'],['Output','Multi-paragraph investigation report'],['Sections','Transaction details, triggered rules, risk assessment, recommendation'],['LLM trigger','User asks to investigate or explain a specific transaction']]},
+}
+
+function showDetail(key) {
+  const d = DETAILS[key]; if (!d) return
+  const content = document.getElementById('dp-content')
+  content.innerHTML = `
+    <span class="dp-tag ${d.tagClass}">${d.tag}</span>
+    <h3>${d.title}</h3>
+    <p class="dp-desc">${d.desc}</p>
+    ${d.props ? `<ul class="dp-props">${d.props.map(([k,v]) => `<li><span class="pk">${k}</span><span class="pv">${v}</span></li>`).join('')}</ul>` : ''}
+  `
+  document.getElementById('dp').classList.add('open')
+}
+function closePanel() { document.getElementById('dp').classList.remove('open') }
+function setActive(el) {
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'))
+  el.classList.add('active')
+}
+const sections = ['overview','ai-arch','tools','chat-flow','search-flow','build','components']
+window.addEventListener('scroll', () => {
+  const pos = window.scrollY + 120
+  for (let i = sections.length - 1; i >= 0; i--) {
+    const el = document.getElementById(sections[i])
+    if (el && el.offsetTop <= pos) {
+      document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'))
+      const link = document.querySelector(`nav a[href="#${sections[i]}"]`)
+      if (link) link.classList.add('active')
+      break
+    }
+  }
+})
+</script>
+</body>
+</html>
