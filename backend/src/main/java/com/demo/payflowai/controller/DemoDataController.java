@@ -92,13 +92,13 @@ public class DemoDataController {
         int id = 25 + txnCounter.incrementAndGet();
         String ref = String.format("PF-20261017-%03d", id);
 
-        int senderId   = ((Number) payload.get("senderAccountId")).intValue();
-        int receiverId = ((Number) payload.get("receiverAccountId")).intValue();
+        int senderId   = Integer.parseInt(payload.get("senderAccountId").toString());
+        int receiverId = Integer.parseInt(payload.get("receiverAccountId").toString());
 
         Map<String, Object> sender   = ACCOUNTS.stream().filter(a -> ((Number)a.get("id")).intValue() == senderId).findFirst().orElse(Map.of("name","Unknown","accountNumber","—"));
         Map<String, Object> receiver = ACCOUNTS.stream().filter(a -> ((Number)a.get("id")).intValue() == receiverId).findFirst().orElse(Map.of("name","Unknown","accountNumber","—"));
 
-        double amount    = ((Number) payload.get("amount")).doubleValue();
+        double amount    = Double.parseDouble(payload.get("amount").toString());
         boolean flagged  = amount >= 50_000;
         int riskScore    = flagged ? 65 + (int)(amount % 25) : 10 + (int)(amount % 30);
         String status    = flagged ? "FLAGGED" : "PROCESSING";

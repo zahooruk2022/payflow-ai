@@ -2,6 +2,8 @@ package com.demo.payflowai.config;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
@@ -23,6 +25,8 @@ import java.util.Map;
  */
 public class GenAiVcapPostProcessor implements EnvironmentPostProcessor, Ordered {
 
+    private static final Logger log = LoggerFactory.getLogger(GenAiVcapPostProcessor.class);
+
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         String vcap = environment.getProperty("VCAP_SERVICES");
@@ -39,8 +43,12 @@ public class GenAiVcapPostProcessor implements EnvironmentPostProcessor, Ordered
             String openaiBase = endpoint.path("openai_api_base").asText(null);
             String apiKey     = endpoint.path("api_key").asText(null);
 
-            if (openaiBase == null || apiKey == null) return;
+            if (openaiBase == null || apiKey == null) {
+                log.warn("GenAiVcapPostProcessor: credentials.endpoint missing openai_api_base or api_key — falling back to application.yml defaults");
+                return;
+            }
 
+            log.info("GenAiVcapPostProcessor: setting spring.ai.openai.chat.base-url={}", openaiBase);
             Map<String, Object> props = new HashMap<>();
             props.put("spring.ai.openai.chat.base-url", openaiBase);
             props.put("spring.ai.openai.chat.api-key",  apiKey);
@@ -48,8 +56,8 @@ public class GenAiVcapPostProcessor implements EnvironmentPostProcessor, Ordered
             environment.getPropertySources().addFirst(
                 new MapPropertySource("genAiVcapBinding", props)
             );
-        } catch (Exception ignored) {
-            // Fail silently — missing or malformed VCAP_SERVICES falls back to application.yml
+        } catch (Exception e) {
+            log.warn("GenAiVcapPostProcessor: failed to parse VCAP_SERVICES — falling back to application.yml defaults. Error: {}", e.getMessage());
         }
     }
 
