@@ -13,6 +13,16 @@ Deploys as a single jar to Tanzu Application Service (TAS). React frontend embed
 
 ---
 
+## PayFlow demo suite
+
+| Repo | Stack | Purpose |
+|---|---|---|
+| [payflow-demo](https://github.com/zahooruk2022/payflow-demo) | Spring Boot · Docker Compose | Local dev — PostgreSQL, RabbitMQ, Redis, Prometheus, Grafana |
+| [payflow-demo-cf](https://github.com/zahooruk2022/payflow-demo-cf) | Spring Boot · CF managed services | Tanzu/TAS — single `cf push`, VCAP_SERVICES auto-wiring |
+| **payflow-ai** ← you are here | Spring AI · Tanzu GenAI | AI payment analyst — tool-calling chat + semantic transaction search |
+
+---
+
 ## Features
 
 ### Chat Analyst
