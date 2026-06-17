@@ -1,7 +1,7 @@
 package com.demo.payflowai.controller;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -21,8 +21,7 @@ public class ChatController {
         String sessionId = request.sessionId() != null ? request.sessionId() : UUID.randomUUID().toString();
         String response = chatClient.prompt()
                 .user(request.message())
-                .advisors(spec -> spec.param(
-                        AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY, sessionId))
+                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, sessionId))
                 .call()
                 .content();
         return new ChatResponse(response, sessionId);
