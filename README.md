@@ -104,9 +104,7 @@ No external databases or message queues — the only runtime dependency is the T
 
 ## Configuration
 
-All via environment variables:
-
-**On CF** — credentials come from VCAP_SERVICES (service binding), no env vars needed for URL/key:
+**On CF** — AI credentials (URL + API key) come from VCAP_SERVICES via service binding. No `cf set-env` needed for credentials:
 
 | CF Service | Provides |
 |---|---|
@@ -122,6 +120,8 @@ All via environment variables:
 | `AI_BASE_URL` | `http://localhost:11434/v1` | Local dev only — overridden by VCAP on CF |
 | `AI_API_KEY` | `local` | Local dev only — overridden by VCAP on CF |
 | `PORT` | `8080` | Set automatically by CF |
+
+> To inspect binding credentials for debugging, use `cf create-service-key <instance> temp-key` then `cf service-key <instance> temp-key`. Delete the key afterwards with `cf delete-service-key`. Never store or commit the output.
 
 ---
 

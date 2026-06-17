@@ -40,9 +40,27 @@ cf create-service ai-models <embedding-plan>     payflow-ai-embeddings
 | `backend/src/main/java/.../service/SemanticSearchService.java` | Seeds vector store, exposes similarity search |
 | `backend/src/main/java/.../controller/ChatController.java` | POST /api/chat — per-session conversation memory |
 | `backend/src/main/java/.../controller/SearchController.java` | GET /api/search?q=&topK= |
-| `backend/src/main/resources/application.yml` | AI model config via AI_BASE_URL / AI_CHAT_MODEL / AI_EMBEDDING_MODEL |
+| `backend/src/main/java/.../config/GenAiVcapPostProcessor.java` | Reads VCAP_SERVICES `ai-models` bindings → sets per-type Spring AI base-url + api-key |
+| `backend/src/main/resources/META-INF/spring.factories` | Registers GenAiVcapPostProcessor as an EnvironmentPostProcessor |
+| `backend/src/main/resources/application.yml` | AI model names + local dev defaults (base-url/api-key overridden by VCAP on CF) |
 | `frontend/src/App.jsx` | Full UI — Chat tab + Semantic Search tab |
-| `manifest.yml` | CF manifest — set AI_API_KEY via cf set-env before pushing |
+| `manifest.yml` | CF manifest — binds payflow-ai-chat-tools + payflow-ai-embeddings services |
+
+---
+
+## Inspecting AI service credentials (debugging only)
+
+Never store the output of these commands — they contain live API keys.
+
+```bash
+# See what VCAP_SERVICES the app received (after cf push):
+cf env payflow-ai
+
+# Inspect a binding before deploying (temporary key — delete after):
+cf create-service-key payflow-ai-chat-tools temp-key
+cf service-key payflow-ai-chat-tools temp-key
+cf delete-service-key payflow-ai-chat-tools temp-key -f
+```
 
 ---
 
