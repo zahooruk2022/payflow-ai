@@ -2,9 +2,8 @@
 # PayFlow AI — Cloud Foundry deployment manifest
 #
 # Before pushing:
-#   1. Create the AI service instances (one-time):
+#   1. Create the AI service instance (one-time):
 #        cf create-service ai-models chat-and-tools-model payflow-ai-chat-tools
-#        cf create-service ai-models <embedding-plan>     payflow-ai-embeddings
 #   2. Run ./build.sh
 #   3. cf push
 #
@@ -25,7 +24,6 @@ applications:
 
     services:
       - payflow-ai-chat-tools    # → spring.ai.openai.chat.base-url + api-key
-      - payflow-ai-embeddings    # → spring.ai.openai.embedding.base-url + api-key
 
     env:
       JBP_CONFIG_OPEN_JDK_JRE: '{ jre: { version: 21.+ } }'
@@ -34,6 +32,5 @@ applications:
         -XX:MaxRAMPercentage=65.0
         -Djava.security.egd=file:/dev/./urandom
 
-      # Model names are not in the VCAP binding — set them here
-      AI_CHAT_MODEL:       gpt-oss:20b
-      AI_EMBEDDING_MODEL:  nomic-embed-text-v2-moe
+      # Model name is not in the VCAP binding — set it here
+      AI_CHAT_MODEL: gpt-oss:20b

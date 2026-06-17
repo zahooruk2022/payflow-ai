@@ -13,9 +13,6 @@ spring:
           model:       ${AI_CHAT_MODEL:gpt-oss:20b}
           temperature: 0.5
           max-tokens:  1024
-      embedding:
-        options:
-          model: ${AI_EMBEDDING_MODEL:nomic-embed-text-v2-moe}
 
 server:
   port: ${PORT:8080}

@@ -12,14 +12,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Maps Tanzu Platform GenAI service bindings from VCAP_SERVICES to Spring AI properties.
+ * Maps the Tanzu Platform GenAI chat service binding from VCAP_SERVICES to Spring AI properties.
  *
- * Each bound "ai-models" service instance exposes:
- *   credentials.endpoint.openai_api_base  →  per-type base URL
- *   credentials.endpoint.api_key          →  per-type JWT token
- *
- * Binding whose CF instance name contains "embed" is treated as the embedding model;
- * all others are treated as the chat model.
+ * The bound "ai-models" service instance exposes:
+ *   credentials.endpoint.openai_api_base  →  spring.ai.openai.chat.base-url
+ *   credentials.endpoint.api_key          →  spring.ai.openai.chat.api-key
  *
  * On CF:  properties are set from VCAP_SERVICES, overriding application.yml.
  * Locally: VCAP_SERVICES is absent, so application.yml defaults apply unchanged.
@@ -37,34 +34,20 @@ public class GenAiVcapPostProcessor implements EnvironmentPostProcessor, Ordered
             JsonNode bindings = root.path("ai-models");
             if (!bindings.isArray() || bindings.isEmpty()) return;
 
+            // Use the first ai-models binding for chat
+            JsonNode endpoint = bindings.get(0).path("credentials").path("endpoint");
+            String openaiBase = endpoint.path("openai_api_base").asText(null);
+            String apiKey     = endpoint.path("api_key").asText(null);
+
+            if (openaiBase == null || apiKey == null) return;
+
             Map<String, Object> props = new HashMap<>();
+            props.put("spring.ai.openai.chat.base-url", openaiBase);
+            props.put("spring.ai.openai.chat.api-key",  apiKey);
 
-            for (JsonNode binding : bindings) {
-                JsonNode endpoint = binding.path("credentials").path("endpoint");
-                String instanceName = binding.path("name").asText("");
-                String plan        = binding.path("plan").asText("");
-
-                String openaiBase = endpoint.path("openai_api_base").asText(null);
-                String apiKey     = endpoint.path("api_key").asText(null);
-
-                if (openaiBase == null || apiKey == null) continue;
-
-                boolean isEmbedding = instanceName.contains("embed") || plan.contains("embed");
-
-                if (isEmbedding) {
-                    props.put("spring.ai.openai.embedding.base-url", openaiBase);
-                    props.put("spring.ai.openai.embedding.api-key",  apiKey);
-                } else {
-                    props.put("spring.ai.openai.chat.base-url", openaiBase);
-                    props.put("spring.ai.openai.chat.api-key",  apiKey);
-                }
-            }
-
-            if (!props.isEmpty()) {
-                environment.getPropertySources().addFirst(
-                    new MapPropertySource("genAiVcapBinding", props)
-                );
-            }
+            environment.getPropertySources().addFirst(
+                new MapPropertySource("genAiVcapBinding", props)
+            );
         } catch (Exception ignored) {
             // Fail silently — missing or malformed VCAP_SERVICES falls back to application.yml
         }
