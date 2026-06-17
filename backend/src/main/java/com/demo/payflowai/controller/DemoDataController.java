@@ -2,10 +2,13 @@ package com.demo.payflowai.controller;
 
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping("/api")
 public class DemoDataController {
+
+    private final AtomicInteger txnCounter = new AtomicInteger(0);
 
     private static final List<Map<String, Object>> TRANSACTIONS = List.of(
         txn(1,  "PF-20261017-001", "Vantage Bank PLC",    "GB29VNTK60161331926819", "Albion Bank PLC",      "GB39ALBN60161311935516", 125000.00, "FLAGGED",    85, "17:58"),
@@ -82,6 +85,37 @@ public class DemoDataController {
     @GetMapping("/accounts")
     public List<Map<String, Object>> accounts() {
         return ACCOUNTS;
+    }
+
+    @PostMapping("/payments")
+    public Map<String, Object> submitPayment(@RequestBody Map<String, Object> payload) {
+        int id = 25 + txnCounter.incrementAndGet();
+        String ref = String.format("PF-20261017-%03d", id);
+
+        int senderId   = ((Number) payload.get("senderAccountId")).intValue();
+        int receiverId = ((Number) payload.get("receiverAccountId")).intValue();
+
+        Map<String, Object> sender   = ACCOUNTS.stream().filter(a -> ((Number)a.get("id")).intValue() == senderId).findFirst().orElse(Map.of("name","Unknown","accountNumber","—"));
+        Map<String, Object> receiver = ACCOUNTS.stream().filter(a -> ((Number)a.get("id")).intValue() == receiverId).findFirst().orElse(Map.of("name","Unknown","accountNumber","—"));
+
+        double amount    = ((Number) payload.get("amount")).doubleValue();
+        boolean flagged  = amount >= 50_000;
+        int riskScore    = flagged ? 65 + (int)(amount % 25) : 10 + (int)(amount % 30);
+        String status    = flagged ? "FLAGGED" : "PROCESSING";
+
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", id);
+        m.put("reference", ref);
+        m.put("senderName", sender.get("name"));
+        m.put("senderAccountNumber", sender.get("accountNumber"));
+        m.put("receiverName", receiver.get("name"));
+        m.put("receiverAccountNumber", receiver.get("accountNumber"));
+        m.put("amount", amount);
+        m.put("currency", payload.getOrDefault("currency", "GBP"));
+        m.put("status", status);
+        m.put("riskScore", riskScore);
+        m.put("timestamp", java.time.Instant.now().toString());
+        return m;
     }
 
     private static Map<String, Object> txn(int id, String ref, String senderName, String senderAccNum,

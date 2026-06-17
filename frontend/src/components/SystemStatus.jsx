@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Server, Brain, RefreshCw } from 'lucide-react'
+import { Server, Brain, RefreshCw, MessageSquare } from 'lucide-react'
 
 const SERVICES = [
   { key: 'api',   label: 'Spring Boot API', icon: Server },
@@ -82,8 +82,15 @@ export default function SystemStatus() {
       </div>
 
       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/[0.04]">
-        <p className="text-slate-400 text-[10px]">gpt-oss:20b via Tanzu Platform GenAI</p>
-        <p className="text-violet-500 dark:text-violet-400 text-[10px] font-medium mt-1">Demo mode · Mock data · AI chat live</p>
+        <a
+          href="https://rmq-4bf2a6d7-619b-4011-bcdc-44ede175fd93.sys.tpcf.tnz-field-epc.lvn.broadcom.net"
+          target="_blank"
+          rel="noreferrer"
+          className="text-blue-500 hover:text-blue-400 text-[10px] font-medium flex items-center gap-1"
+        >
+          <MessageSquare size={10} /> RabbitMQ Console →
+        </a>
+        <p className="text-violet-500 dark:text-violet-400 text-[10px] font-medium mt-2">Demo mode · Mock data · AI chat live</p>
       </div>
     </div>
   )

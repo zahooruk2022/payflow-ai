@@ -2,12 +2,14 @@ import React, { useState, useCallback, useEffect } from 'react'
 import { fetchTransactions, fetchStats, fetchAlerts } from './api/client'
 import Dashboard from './components/Dashboard'
 import TransactionFeed from './components/TransactionFeed'
+import PaymentForm from './components/PaymentForm'
 import FraudAlerts from './components/FraudAlerts'
 import ChatPanel from './components/ChatPanel'
-import { Activity, MessageSquare, ShieldAlert, LayoutDashboard, Sun, Moon } from 'lucide-react'
+import { Activity, Send, ShieldAlert, LayoutDashboard, MessageSquare, Sun, Moon } from 'lucide-react'
 
 const TABS = [
   { id: 'dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
+  { id: 'payments',     label: 'Send Payment', icon: Send },
   { id: 'transactions', label: 'Live Feed',    icon: Activity },
   { id: 'alerts',       label: 'Fraud Alerts', icon: ShieldAlert },
   { id: 'ai',           label: 'AI Analyst',   icon: MessageSquare },
@@ -16,21 +18,21 @@ const TABS = [
 function normaliseAlert(a) {
   return {
     id:          a.id,
-    senderName:  a.senderName,
-    receiverName:a.receiverName,
-    amount:      a.amount,
+    senderName:  a.transaction?.senderAccount?.name ?? a.senderName ?? '—',
+    receiverName:a.transaction?.receiverAccount?.name ?? a.receiverName ?? '—',
+    amount:      a.transaction?.amount ?? a.amount,
     riskScore:   a.riskScore,
     alertType:   a.alertType,
     description: a.description,
-    timestamp:   a.timestamp,
+    timestamp:   a.createdAt ?? a.timestamp,
   }
 }
 
 export default function App() {
-  const [tab, setTab]     = useState('dashboard')
-  const [transactions, setTxns]   = useState([])
-  const [stats, setStats]         = useState(null)
-  const [alerts, setAlerts]       = useState([])
+  const [tab, setTab]                = useState('dashboard')
+  const [transactions, setTxns]      = useState([])
+  const [stats, setStats]            = useState(null)
+  const [alerts, setAlerts]          = useState([])
   const [newAlertCount, setNewAlert] = useState(0)
 
   const [dark, setDark] = useState(() => {
@@ -54,6 +56,10 @@ export default function App() {
     const id = setInterval(loadData, 30000)
     return () => clearInterval(id)
   }, [loadData])
+
+  const handleTransaction = useCallback((txn) => {
+    setTxns(prev => [txn, ...prev].slice(0, 150))
+  }, [])
 
   const switchTab = (id) => {
     setTab(id)
@@ -122,6 +128,7 @@ export default function App() {
       {/* Page content */}
       <main className="flex-1 p-6 overflow-auto">
         {tab === 'dashboard'    && <Dashboard stats={stats} transactions={transactions} alerts={alerts} />}
+        {tab === 'payments'     && <PaymentForm onSubmitted={handleTransaction} />}
         {tab === 'transactions' && <TransactionFeed transactions={transactions} />}
         {tab === 'alerts'       && <FraudAlerts alerts={alerts} />}
         {tab === 'ai'           && <ChatPanel />}

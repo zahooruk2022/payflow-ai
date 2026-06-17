@@ -2,8 +2,10 @@ package com.demo.payflowai.controller;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -17,14 +19,19 @@ public class ChatController {
     }
 
     @PostMapping
-    public ChatResponse chat(@RequestBody ChatRequest request) {
-        String sessionId = request.sessionId() != null ? request.sessionId() : UUID.randomUUID().toString();
-        String response = chatClient.prompt()
-                .user(request.message())
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, sessionId))
-                .call()
-                .content();
-        return new ChatResponse(response, sessionId);
+    public ResponseEntity<?> chat(@RequestBody ChatRequest request) {
+        try {
+            String sessionId = request.sessionId() != null ? request.sessionId() : UUID.randomUUID().toString();
+            String response = chatClient.prompt()
+                    .user(request.message())
+                    .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, sessionId))
+                    .call()
+                    .content();
+            return ResponseEntity.ok(new ChatResponse(response, sessionId));
+        } catch (Exception e) {
+            return ResponseEntity.status(503)
+                    .body(Map.of("error", "AI service unavailable: " + e.getMessage()));
+        }
     }
 
     @DeleteMapping("/{sessionId}")
