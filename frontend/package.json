@@ -10,7 +10,11 @@
   },
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "axios": "^1.7.2",
+    "lucide-react": "^0.400.0",
+    "date-fns": "^3.6.0",
+    "recharts": "^2.12.7"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
